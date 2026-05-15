@@ -1,4 +1,4 @@
-acmart.cls
+!acmart.cls
 acmart.pdf
 acmguide.pdf
 samples/sample-*.pdf
@@ -27,7 +27,13 @@ samples/sample-*.pdf
 *~
 *.bcf
 *.run.xml
-samples/ACM-Reference-Format.bst
-samples/*.bbx
-samples/*.cbx
-samples/*.dbx
+!ACM-Reference-Format.bst
+!acmauthoryear.bbx
+!acmauthoryear.cbx
+!acmnumeric.bbx
+!acmnumeric.cbx
+!acmdatamodel.dbx
+!samples/ACM-Reference-Format.bst
+!samples/*.bbx
+!samples/*.cbx
+!samples/*.dbx
