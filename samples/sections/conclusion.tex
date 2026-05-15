@@ -1,0 +1,15 @@
+\section{Conclusion}
+
+Backtracking traces and automata ambiguity describe the same source of
+nondeterminism from different angles.  Traces preserve the priority discipline
+of JavaScript-style engines; ambiguity abstracts away priority and counts the
+number of successful decompositions.  By proving that successful trace leaves
+correspond to accepting runs of a position automaton, we can transport decades
+of automata-theoretic ambiguity results into the analysis of backtracking
+regular-expression execution.
+
+The current Coq development establishes the regular-expression and
+position-automata infrastructure and the basic ambiguity interface.  The next
+milestone is the mechanized trace/run correspondence theorem.  Once completed,
+the development will provide a foundation for proof-producing ReDoS analyses
+that connect engine behavior, automata structure, and verified certificates.

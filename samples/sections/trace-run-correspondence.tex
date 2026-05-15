@@ -1,0 +1,37 @@
+\section{Trace/Run Correspondence}
+
+The central bridge theorem relates three objects for a regular expression \(r\)
+and input word \(w\):
+\begin{enumerate}
+\item successful leaves of the backtracking tree \(\trace(r,w)\);
+\item marked matches of the positioned expression \(\mathsf{label}(r)\);
+\item accepting runs of the position automaton built from \(\mathsf{label}(r)\).
+\end{enumerate}
+
+\begin{theorem}[Successful trace leaves correspond to accepting runs]
+\label{thm:trace-run}
+For every regular expression \(r\) in the regular core and every word \(w\),
+there is a bijection between \(\mathsf{SuccLeaves}(\trace(r,w))\) and the
+accepting marked runs of the position automaton for \(\mathsf{label}(r)\) over
+\(w\).  Consequently,
+\[
+  |\mathsf{SuccLeaves}(\trace(r,w))|
+  =
+  \amb_{\nfa_{\mathsf{pos}}(r)}(w).
+\]
+\end{theorem}
+
+The proof decomposes into two parts.  First, a successful trace leaf induces a
+marked word by recording the atom positions read along that branch.  The
+well-formedness of the trace rules implies that consecutive positions respect
+the followpos relation, so the marked word is accepted by the position
+automaton.  Second, an accepting marked run determines a unique successful
+branch in the full backtracking tree, because the tree semantics enumerates all
+alternatives allowed by the syntax.  The two translations are inverse up to the
+irrelevant administrative nodes of the trace tree.
+
+Priority is intentionally not erased completely.  The bijection preserves the
+order induced by backtracking choices.  Therefore the first accepting run in
+trace order corresponds to the match returned by the JavaScript-style engine.
+Ambiguity counts how many successful alternatives exist; priority chooses one of
+them.

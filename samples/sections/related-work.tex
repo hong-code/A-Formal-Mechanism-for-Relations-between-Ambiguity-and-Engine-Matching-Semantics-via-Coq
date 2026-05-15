@@ -1,0 +1,24 @@
+\section{Related Work}
+
+\paragraph{JavaScript regex semantics.}
+Barriere et al. provide the closest semantic foundation: a complete and
+mechanized JavaScript regex semantics that produces ordered backtracking trees
+and is proved faithful to the ECMAScript specification via Warblre
+equivalence~\cite{barriere2026jsregex}.  Our work is complementary.  Rather
+than verifying an engine algorithm such as PikeVM, we use their tree perspective
+as the engine-side semantic object to be related to automata ambiguity.
+
+\paragraph{Automata ambiguity.}
+Weber and Seidl's work is the classical source for structural analysis of NFA
+ambiguity~\cite{weber1991ambiguity}.  Their criteria for infinite ambiguity and
+polynomial ambiguity growth are especially relevant because they turn a semantic
+growth question into a finite graph problem.  Our contribution is to position
+these criteria as certificates for backtracking trace growth.
+
+\paragraph{ReDoS analysis.}
+Existing ReDoS tools typically search for syntactic vulnerability patterns or
+construct witness strings for catastrophic backtracking.  The mechanism proposed
+here aims at a proof-producing alternative: a detector should justify its
+warning by an automata ambiguity certificate and a verified connection to the
+engine semantics.  The approach is not yet a complete detector, but it clarifies
+which semantic property a detector should certify.

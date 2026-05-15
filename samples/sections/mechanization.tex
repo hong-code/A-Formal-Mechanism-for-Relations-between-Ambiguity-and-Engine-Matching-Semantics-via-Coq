@@ -1,0 +1,40 @@
+\section{Mechanization Status}
+
+The Coq artifact currently consists of the following components.
+
+\begin{table}[t]
+\caption{Current Coq development status.}
+\label{tab:coq-status}
+\begin{tabular}{lll}
+\toprule
+File & Contents & Status \\
+\midrule
+\texttt{Syntax.v} & source and positioned regex syntax; labeling & implemented \\
+\texttt{Sets.v} & finite sets as lists of positions & implemented \\
+\texttt{KleeneSemantics.v} & Kleene and marked semantics & partly proved \\
+\texttt{PositionAutomaton.v} & nullable/first/last/follow and automata & implemented \\
+\texttt{PositionCorrectness.v} & labeling and position lemmas & partly proved \\
+\texttt{DegreeofAmbiguity.v} & NFA ambiguity definitions & implemented \\
+\texttt{DegreeofInfiniteAmbiguity.v} & Weber--Seidl direction & sketch only \\
+\texttt{LindenBridge.v} & bridge to JavaScript regex development & scaffold \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The most important completed theorem is that the labeling pass preserves the
+regular-language semantics after erasing positions.  The current automaton file
+contains a marked acceptance predicate for the Glushkov construction, but the
+full equivalence between marked regex semantics and marked automaton acceptance
+is still open.  The ambiguity file defines accepting-run counts, \(k\)-ambiguity,
+finite ambiguity, polynomial ambiguity, and a proof that deterministic automata
+viewed as NFAs are unambiguous.
+
+This division gives a clean proof roadmap:
+\begin{enumerate}
+\item complete marked semantics \(\Leftrightarrow\) position-automaton
+acceptance;
+\item define the regular-core backtracking tree in Coq;
+\item prove Theorem~\ref{thm:trace-run};
+\item formalize Weber--Seidl graph patterns as checkable certificates;
+\item connect those certificates to ReDoS-oriented warnings.
+\end{enumerate}

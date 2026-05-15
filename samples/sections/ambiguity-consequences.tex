@@ -1,0 +1,30 @@
+\section{Consequences for Ambiguity}
+
+Theorem~\ref{thm:trace-run} transports standard ambiguity classes to
+backtracking traces.
+
+\begin{corollary}[Unambiguous expressions]
+If the position automaton for \(r\) is unambiguous, then for every word \(w\)
+the trace tree \(\trace(r,w)\) has at most one successful leaf.
+\end{corollary}
+
+\begin{corollary}[Finite ambiguity]
+If the position automaton for \(r\) is \(k\)-ambiguous, then every trace tree
+\(\trace(r,w)\) has at most \(k\) successful leaves.
+\end{corollary}
+
+\begin{corollary}[Polynomial ambiguity growth]
+If the position automaton for \(r\) has ambiguity growth bounded by a polynomial
+\(p\), then
+\[
+  |\mathsf{SuccLeaves}(\trace(r,w))| \le p(|w|)
+\]
+for all \(w\).
+\end{corollary}
+
+These corollaries are deliberately phrased over successful leaves.  They do not
+claim that the full tree is small.  A failing input can have many failing
+branches even when successful ambiguity is low.  Nevertheless, successful
+ambiguity is a semantic invariant that can be checked independently of a
+particular engine implementation, and it provides a foundation for richer
+analysis of failing prefixes.

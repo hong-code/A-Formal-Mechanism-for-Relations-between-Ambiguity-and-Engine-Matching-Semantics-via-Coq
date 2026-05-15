@@ -1,0 +1,76 @@
+\section{Introduction}
+
+Modern regular-expression engines are not merely membership testers for regular
+languages.  A JavaScript engine must return the match selected by an ordered
+backtracking policy, including the effects of alternation priority, greedy and
+lazy quantifiers, captures, lookaround, and other language features.  Recent
+work by Barriere, Deng, and Pit-Claudel gives a mechanized semantics for
+JavaScript regular expressions in which the result of matching is not just a
+single top-priority match, but a complete ordered backtracking tree recording the
+matches and failures considered by the engine~\cite{barriere2026jsregex}.  That
+tree is an attractive semantic object for verification: it is faithful to
+backtracking while still being inductive and suitable for proof.
+
+At the same time, the classical theory of finite automata has long studied the
+number of accepting runs of a nondeterministic finite automaton (NFA) on a word.
+This number is the word's ambiguity, and the supremum over all words is the
+degree of ambiguity of the automaton.  Weber and Seidl showed that ambiguity is
+not just a coarse counting measure: finite ambiguity admits structural bounds,
+infinite ambiguity has a simple polynomial-time criterion, and the polynomial
+degree of ambiguity growth is computable~\cite{weber1991ambiguity}.  These
+results are tantalizing for ReDoS, because catastrophic backtracking is precisely
+a phenomenon in which a compact regular expression induces a very large search
+space on a family of inputs.
+
+This paper asks whether these two accounts can be made to meet:
+\begin{quote}
+Can the growth of JavaScript-style backtracking traces be explained, bounded, and
+eventually certified through automata ambiguity?
+\end{quote}
+
+Our answer is a formal mechanism that connects successful leaves of a
+backtracking trace to accepting runs of a position automaton.  The intended
+scope is deliberately staged.  We first treat the regular core of JavaScript
+regular expressions, where Glushkov position automata give a syntax-directed NFA
+whose states are occurrences of atoms.  We then use the tree semantics of
+Barriere et al. as the target view of engine execution.  The central theorem
+states that, after erasing priority annotations and failing leaves, successful
+trace leaves are in bijection with accepting marked runs of the position
+automaton.  This theorem is the bridge that allows ambiguity results to be
+transported to backtracking traces.
+
+The bridge gives three payoffs.
+
+\begin{itemize}
+\item It separates \emph{semantic nondeterminism} from \emph{engine priority}.
+Ambiguity counts the possible successful decompositions of a word; the
+backtracking policy orders those decompositions and selects the first.
+\item It explains why unambiguity and finite ambiguity are useful ReDoS
+invariants.  If the constructed automaton is unambiguous or finitely ambiguous,
+then the successful part of the trace tree is correspondingly bounded.
+\item It identifies the next verification target: lift Weber--Seidl criteria
+into Coq as certificates for infinite or polynomial ambiguity growth, and use
+those certificates to justify static ReDoS warnings.
+\end{itemize}
+
+This is an early-stage ICFP draft.  The Coq development already contains a
+substantial regular-expression and automata core, but the full bridge theorem
+and the Weber--Seidl classification proof are not complete.  We state them as
+the main technical obligations of the paper rather than as finished results.
+
+\paragraph{Contributions.}
+This draft makes the following contributions.
+
+\begin{enumerate}
+\item A formal problem statement connecting ordered JavaScript backtracking
+traces to NFA accepting-run ambiguity.
+\item A position-automata construction in Coq for a regular core, including
+syntax, labeling, nullable/first/last/follow sets, marked-word acceptance, and a
+basic ambiguity interface.
+\item A proposed trace/run correspondence theorem that turns ambiguity bounds
+into bounds on successful backtracking alternatives.
+\item A ReDoS-oriented interpretation of Weber--Seidl ambiguity classes as
+semantic certificates for families of hard matching instances.
+\item A roadmap for completing the mechanized development and extending the
+regular core toward richer JavaScript features.
+\end{enumerate}

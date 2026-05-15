@@ -1,0 +1,31 @@
+\section{Implications for ReDoS}
+\label{sec:redos}
+
+ReDoS arises when a regular-expression engine spends superlinear or exponential
+time exploring alternatives.  The bridge developed here suggests a semantic
+pipeline for certified ReDoS analysis.
+
+\paragraph{Step 1: Compile to a position automaton.}
+For the regular core, this is syntax-directed and already implemented.  For
+larger JavaScript fragments, compilation must account for captures and
+zero-width assertions, or else restrict the analysis to a conservative regular
+approximation.
+
+\paragraph{Step 2: Classify ambiguity.}
+Weber--Seidl criteria can identify unambiguous, finitely ambiguous,
+polynomially ambiguous, and exponentially ambiguous automata.  In a verifier,
+the analyzer can emit a graph certificate and Coq can check that the certificate
+implies the claimed ambiguity class.
+
+\paragraph{Step 3: Interpret the class as a trace bound.}
+The trace/run theorem turns ambiguity bounds into bounds on successful
+alternatives.  For many practical patterns, these alternatives are the source of
+the engine's branching behavior.
+
+\paragraph{Step 4: Account for failure.}
+A full ReDoS detector must also bound failing branches.  We propose to model
+failing branches through \emph{prefix ambiguity}: the number of partial runs that
+consume a prefix and reach a live but ultimately rejecting configuration.  This
+quantity is naturally expressible as ambiguity in product automata that track
+both progress and residual obligations.  Formalizing this prefix layer is the
+main technical extension beyond the successful-leaf correspondence.

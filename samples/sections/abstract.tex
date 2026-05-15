@@ -1,0 +1,24 @@
+\begin{abstract}
+Backtracking regular-expression engines expose a gap between two familiar views of
+regular expressions.  Automata theory explains nondeterminism through accepting
+runs and their degree of ambiguity, while production engines explain matching
+through an ordered backtracking execution that may explore many failing and
+successful alternatives before returning the highest-priority match.  The gap is
+especially visible in JavaScript, whose semantics is specified operationally and
+whose performance pathologies are central to Regular Expression Denial of Service
+(ReDoS).
+
+This paper develops a mechanized bridge between these views.  We use
+position automata as a common representation and relate accepting runs of a
+Glushkov-style automaton to leaves in a JavaScript-style backtracking trace tree.
+The resulting correspondence explains when the size and growth of backtracking
+search are controlled by classical ambiguity notions: unambiguous automata induce
+at most one successful trace, finite ambiguity yields a uniform bound on
+successful alternatives, and polynomial or exponential ambiguity gives a semantic
+classification of families of inputs that may drive ReDoS behavior.  The
+development is being mechanized in Coq.  The current artifact formalizes regular
+and positioned syntax, Kleene semantics, position-set constructions, executable
+automata, and basic ambiguity definitions; the remaining proof obligations are
+isolated as the trace/automaton correspondence and the Weber--Seidl ambiguity
+classification layer.
+\end{abstract}

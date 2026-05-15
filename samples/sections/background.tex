@@ -1,0 +1,45 @@
+\section{Background}
+
+\subsection{Backtracking Tree Semantics}
+
+Barriere et al. define an inductive semantics for JavaScript regular
+expressions that produces a backtracking execution trace tree rather than merely
+the first match~\cite{barriere2026jsregex}.  A trace tree contains leaves for
+success and failure, unary nodes for deterministic operations such as reading a
+character or opening a capture group, and binary or ordered nodes for
+backtracking choices.  The left-to-right order of choice nodes represents engine
+priority.  The match returned by a conventional backtracking engine is the
+leftmost successful leaf, while the full tree records every alternative that
+would be considered by a complete search.
+
+For this paper, we abstract this idea to a regular core.  Let
+\(\trace(r,w)\) be the ordered trace tree for regular expression \(r\) and word
+\(w\).  We write \(\mathsf{SuccLeaves}(\trace(r,w))\) for the list of successful
+leaves, preserving priority order.  The returned engine match, when it exists,
+is the head of this list.
+
+\subsection{Automata Ambiguity}
+
+Let an NFA be \(\nfa=(Q,\Sigma,\delta,I,F)\).  A run over
+\(w=a_1\cdots a_n\) is a path
+\[
+  q_0 \xrightarrow{a_1} q_1 \xrightarrow{a_2} \cdots
+  \xrightarrow{a_n} q_n
+\]
+with \(q_0\in I\).  It is accepting when \(q_n\in F\).  The ambiguity of
+\(\nfa\) on \(w\), written \(\amb_{\nfa}(w)\), is the number of accepting runs
+of \(\nfa\) on \(w\).  The degree of ambiguity of \(\nfa\) is
+\[
+  \sup_{w\in\Sigma^*} \amb_{\nfa}(w).
+\]
+An automaton is unambiguous when this degree is at most one, finitely ambiguous
+when the supremum is finite, polynomially ambiguous when \(\amb_{\nfa}(w)\) is
+bounded by a polynomial in \(|w|\), and exponentially ambiguous when no
+polynomial bound exists.
+
+Weber and Seidl give structural criteria and bounds for these classes.  In
+particular, infinite ambiguity is characterized by a simple pattern in the
+automaton and is decidable in polynomial time; the degree of polynomial
+ambiguity growth is also computable in polynomial time~\cite{weber1991ambiguity}.
+These criteria are exactly the kind of finite certificate that a proof assistant
+can check once the underlying graph theory has been formalized.
