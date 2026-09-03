@@ -126,21 +126,33 @@ $
 $
 with both functions returning $\mathsf{F}$ otherwise.
 
-
 We introduce an auxiliary derivative $D'_a(r)$, called the \emph{virtual derivative}, which captures derivations that consume the symbol $a$ through a string constraint associated with an empty main-string component. Thus, $D'_a(r)$ is relevant only when $\lambda_1(r)=\mathsf{T}$. For $a,b\in\Sigma$, the virtual derivative is defined inductively as follows:
+\begingroup
+\footnotesize
 \begin{equation}
-\begin{aligned}
-D'_a(\emptyset)
-&=\emptyset,
-&
-D'_a(\varepsilon)
-&=\emptyset,
+\begin{gathered}
+D'_a(\emptyset)=\emptyset,
+\qquad
+D'_a(\varepsilon)=\emptyset,
+\qquad
+D'_a(b)=\emptyset,
+\quad
+D'_a(r^*)=
+\begin{cases}
+D'_a(r)r^*,
+& \lambda_1(r)=\mathsf{T},\\
+\emptyset,
+& \text{otherwise},
+\end{cases}
+\quad
+D'_a(\mathsf{LA}(r))
+=
+\mathsf{LA}\bigl(D_a(r)\bigr),
 \\
-D'_a(r+s)
-&=
+D'_a(r+s)=
 \begin{cases}
 D'_a(r)+D'_a(s),
-& \lambda_1(r)=\mathsf{T}\land\lambda_1(s)=\mathsf{T},\\
+& \lambda_1(r)\land\lambda_1(s),\\
 D'_a(r),
 & \lambda_1(r)=\mathsf{T}\land\lambda_1(s)=\mathsf{F},\\
 D'_a(s),
@@ -148,71 +160,48 @@ D'_a(s),
 \emptyset,
 & \text{otherwise},
 \end{cases}
-&
-D'_a(b)
-&=\emptyset,
-\\
-D'_a(rs)
-&=
+\quad
+D'_a(rs)=
 \begin{cases}
 \emptyset,
-& \lambda_1(r)=\mathsf{F}\lor\lambda_1(s)=\mathsf{F},
-\\
+& \lambda_1(r)=\mathsf{F}\lor\lambda_1(s)=\mathsf{F},\\
 D'_a(r)D'_a(s),
-& \lambda(r)=\mathsf{F}\land\lambda(s)=\mathsf{F},
-\\
+& \lambda(r)=\mathsf{F}\land\lambda(s)=\mathsf{F},\\
 D'_a(r)D'_a(s)+D'_a(s),
-& \lambda(r)=\mathsf{T}\land\lambda(s)=\mathsf{F},
-\\
+& \lambda(r)=\mathsf{T}\land\lambda(s)=\mathsf{F},\\
 D'_a(r)D'_a(s)+D'_a(r),
-& \lambda(r)=\mathsf{F}\land\lambda(s)=\mathsf{T},
-\\
+& \lambda(r)=\mathsf{F}\land\lambda(s)=\mathsf{T},\\
 D'_a(r)D'_a(s)+D'_a(r)+D'_a(s),
-& \lambda(r)=\mathsf{T}\land\lambda(s)=\mathsf{T},
+& \lambda(r)=\mathsf{T}\land\lambda(s)=\mathsf{T}.
 \end{cases}
-\\
-D'_a(r^*)
-&=
-\begin{cases}
-D'_a(r)r^*,
-& \lambda_1(r)=\mathsf{T},\\
-\emptyset,
-& \text{otherwise},
-\end{cases}
-&D'_a(\mathsf{LA}(r))
-&=
-\mathsf{LA}\bigl(D_a(r)\bigr).
-\end{aligned}
+\end{gathered}
 \label{eq:rewpla-virtual-derivative}
 \end{equation}
-
+\endgroup
 The derivative $D_a(r)$ of an expression $r\in\mathrm{REwPLA}$ with respect to a symbol $a\in\Sigma$ captures both real and virtual derivations while preserving the associated string constraints. It is defined inductively as follows:
+\begingroup
+\footnotesize
 \begin{equation}
-\begin{aligned}
-D_a(\emptyset)
-&=\emptyset,
-&
-D_a(\varepsilon)
-&=\emptyset,
-\\[1mm]
-D_a(b)
-&=
+\begin{gathered}
+D_a(\emptyset)=\emptyset,
+\qquad
+D_a(\varepsilon)=\emptyset,
+\qquad
+D_a(b)=
 \begin{cases}
 \varepsilon, & \text{if } a=b,\\
 \emptyset, & \text{otherwise},
 \end{cases}
-\\[2mm]
-D_a(r+s)
-&=D_a(r)+D_a(s),
-&
-D_a(r^*)
-&=D_a(r)r^*,
+\quad
+D_a(r+s)=D_a(r)+D_a(s),
+\qquad
+D_a(r^*)=D_a(r)r^*,
 \\[1mm]
 D_a(\mathsf{LA}(r))
-&=\mathsf{LA}\bigl(D_a(r)\bigr),
-\\[2mm]
-D_a(rs)
-&=
+=
+\mathsf{LA}\bigl(D_a(r)\bigr),
+\quad
+D_a(rs)=
 \begin{cases}
 D_a(r)s+D'_a(r)D_a(s),
 & \lambda_1(r)=\mathsf{T}\land\lambda(r)=\mathsf{F},
@@ -223,10 +212,10 @@ D_a(r)s+D'_a(r)D_a(s)+D_a(s),
 D_a(r)s,
 & \text{otherwise}.
 \end{cases}
-\end{aligned}
+\end{gathered}
 \label{eq:rewpla-symbol-derivative}
 \end{equation}
-
+\endgroup
 Here, $D'_a(r)$ denotes the virtual component of the derivative, whereas $D_a(r)$ represents the complete derivative. In particular, $D'_a(r)$ accounts for the case in which the main-string component is empty and the symbol $a$ is consumed through the associated string constraint.
 
 \begin{example}
