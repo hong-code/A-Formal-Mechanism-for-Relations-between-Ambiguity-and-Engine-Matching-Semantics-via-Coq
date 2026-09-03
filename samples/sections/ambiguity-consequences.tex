@@ -1,30 +1,750 @@
-\section{Consequences for Ambiguity}
+% % ============================================================
+% \section{Lookahead-Aware Continuation Position Automaton}
+% \label{sec:lookahead-position}
+% % ============================================================
 
-Theorem~\ref{thm:trace-run} transports standard ambiguity classes to
-backtracking traces.
+% The classical position automaton associates each non-initial state
+% with a marked symbol occurrence of a regular expression. For standard
+% regular expressions, a marked position is sufficient to describe the
+% residual matching behavior after the corresponding symbol occurrence
+% has been consumed.
 
-\begin{corollary}[Unambiguous expressions]
-If the position automaton for \(r\) is unambiguous, then for every word \(w\)
-the trace tree \(\trace(r,w)\) has at most one successful leaf.
-\end{corollary}
+% Positive lookahead breaks this one-to-one correspondence. Although a
+% lookahead assertion is zero-width and does not introduce a new
+% consuming position, its successful evaluation may constrain the
+% residual behavior of the surrounding expression. Hence, the same
+% consuming position may have to be distinguished according to the
+% lookahead continuation that justifies reaching it.
 
-\begin{corollary}[Finite ambiguity]
-If the position automaton for \(r\) is \(k\)-ambiguous, then every trace tree
-\(\trace(r,w)\) has at most \(k\) successful leaves.
-\end{corollary}
+% This section extends the position automaton by replacing ordinary
+% positions with lookahead-aware continuation locations. The construction
+% keeps the consuming structure of the classical position automaton, but
+% enriches its states with continuation information induced by positive
+% lookahead.
 
-\begin{corollary}[Polynomial ambiguity growth]
-If the position automaton for \(r\) has ambiguity growth bounded by a polynomial
-\(p\), then
-\[
-  |\mathsf{SuccLeaves}(\trace(r,w))| \le p(|w|)
-\]
-for all \(w\).
-\end{corollary}
+% % ------------------------------------------------------------
+% \subsection{Continuation Locations}
+% \label{sec:continuation-location}
+% % ------------------------------------------------------------
 
-These corollaries are deliberately phrased over successful leaves.  They do not
-claim that the full tree is small.  A failing input can have many failing
-branches even when successful ambiguity is low.  Nevertheless, successful
-ambiguity is a semantic invariant that can be checked independently of a
-particular engine implementation, and it provides a foundation for richer
-analysis of failing prefixes.
+% Let $\overline r$ be a marked positive-lookahead regular expression,
+% and let $\operatorname{Pos}(\overline r)$ denote the set of its marked
+% consuming positions. A marked occurrence of the symbol $a$ at position
+% $p$ is written $a_p$, and $\operatorname{lab}(p)$ denotes the symbol
+% labelling $p$. A marked lookahead occurrence is written as
+% $(\lookahead \theta)_\ell$, where $\ell$ uniquely identifies the
+% assertion and $\theta$ is the asserted expression.
+
+% Before defining lookahead continuations, we first define the residual
+% expression induced by a marked consuming position. For a position $q$,
+% the $c$-derivative of an expression $e$ with respect to $q$, written
+% $d^c_q(e)$, is defined by
+% \begin{equation}
+% \begin{gathered}
+% d^c_q(\emptyset)=d^c_q(\varepsilon)=\emptyset,\qquad
+% d^c_q(a_p)=
+% \begin{cases}
+% \varepsilon, & p=q,\\
+% \emptyset, & p\ne q,
+% \end{cases}
+% \\[1mm]
+% d^c_q(r+s)=
+% \begin{cases}
+% d^c_q(r), & d^c_q(r)\ne\emptyset,\\
+% d^c_q(s), & d^c_q(r)=\emptyset,
+% \end{cases}
+% \qquad
+% d^c_q(r\cdot s)=
+% \begin{cases}
+% d^c_q(r)\cdot s, & d^c_q(r)\ne\emptyset,\\
+% d^c_q(s), & d^c_q(r)=\emptyset\ \text{and}\ \varepsilon\in\mathcal L(r),\\
+% \emptyset, & \text{otherwise},
+% \end{cases}
+% \\[1mm]
+% d^c_q(r^*)=d^c_q(r)\cdot r^*,
+% \qquad
+% d^c_q((\lookahead r)_\ell)=\emptyset .
+% \end{gathered}
+% \label{eq:c-derivative-position}
+% \end{equation}
+% The last clause reflects that a lookahead assertion has no consuming
+% position of its own. Its effect is not represented by consuming a symbol,
+% but by a zero-width continuation context.
+
+% The $c$-derivative extends to a word of marked positions by
+% \begin{equation}
+% d^c_\varepsilon(e)=e,
+% \qquad
+% d^c_{uq}(e)=d^c_q(d^c_u(e)).
+% \label{eq:c-derivative-word}
+% \end{equation}
+% For a linear marked expression, if a position $q$ is reachable after
+% some prefix $u$, then the non-empty residual $d^c_{uq}(e)$ is unique.
+% We call this residual the $c$-continuation of $q$ in $e$ and write
+% \begin{equation}
+% c_q(e)=d^c_{uq}(e)
+% \quad
+% \text{for any }u\text{ such that }d^c_{uq}(e)\ne\emptyset .
+% \label{eq:c-continuation}
+% \end{equation}
+% Thus, a $c$-continuation is derived from a $c$-derivative; it is the
+% expression that remains to be matched after the marked occurrence $q$
+% has been consumed.
+
+% For a lookahead body $\theta$, we define
+% \begin{equation}
+% \operatorname{FirstPos}(\theta)
+% =
+% \{q\in\operatorname{Pos}(\theta)\mid d^c_q(\theta)\ne\emptyset\}.
+% \label{eq:firstpos-by-c-derivative}
+% \end{equation}
+% The continuation contexts induced by $(\lookahead \theta)_\ell$ are
+% collected as
+% \begin{equation}
+% \begin{aligned}
+% \operatorname{Ctx}_\ell(\theta)
+% =
+% &
+% \bigl\{
+% \{\ell:q\triangleright c_q(\theta)\}
+% \mid
+% q\in\operatorname{FirstPos}(\theta)
+% \bigr\}
+% \\
+% &\cup
+% \bigl\{
+% \{\ell:\varepsilon\}
+% \mid
+% \varepsilon\in\mathcal L(\theta)
+% \bigr\}.
+% \end{aligned}
+% \label{eq:lookahead-context}
+% \end{equation}
+% The entry $\ell:q\triangleright c_q(\theta)$ records that the
+% lookahead occurrence $\ell$ is witnessed by first consuming the position
+% $q$ in $\theta$ and then matching the residual $c_q(\theta)$. The entry
+% $\ell:\varepsilon$ covers the case where the lookahead body is nullable.
+
+% A lookahead-aware continuation location is a pair
+% \begin{equation}
+% \lambda=(p,\Gamma),
+% \qquad
+% p\in\operatorname{Pos}(\overline r),
+% \label{eq:continuation-location}
+% \end{equation}
+% where $\Gamma$ is a finite set of lookahead continuations associated
+% with the consuming position $p$. The set of all such locations is
+% denoted by $\operatorname{Loc}_{\mathrm{la}}(\overline r)$. When no
+% lookahead continuation is attached, the location $(p,\emptyset)$
+% degenerates to the classical position $p$.
+
+% A continuation context is interpreted at the input boundary where the
+% corresponding lookahead assertion is evaluated. We write
+% $w,b\models_{\mathrm{ctx}}\Gamma$ if every continuation in $\Gamma$ is
+% satisfied at boundary $b$:
+% \begin{equation}
+% \begin{gathered}
+% w,b\models_{\mathrm{ctx}}\ell:\varepsilon
+% \Longleftrightarrow
+% \top,
+% \\[1mm]
+% w,b\models_{\mathrm{ctx}}\ell:q\triangleright c_q(\theta)
+% \Longleftrightarrow
+% b<|w|
+% \land
+% w_{b+1}=\operatorname{lab}(q)
+% \land
+% \exists k.\,
+% b+1\le k\le |w|
+% \land
+% w,[b+1,k]\models c_q(\theta),
+% \\[1mm]
+% w,b\models_{\mathrm{ctx}}\Gamma
+% \Longleftrightarrow
+% \forall \gamma\in\Gamma.\,
+% w,b\models_{\mathrm{ctx}}\gamma .
+% \end{gathered}
+% \label{eq:context-satisfaction}
+% \end{equation}
+
+% % ------------------------------------------------------------
+% \subsection{Lookahead Continuation Context}
+% \label{sec:lookahead-context}
+% % ------------------------------------------------------------
+
+% The need for continuation locations can be seen from the expression
+% \begin{equation}
+% \begin{gathered}
+% \alpha
+% =
+% (\lookahead (a_1b_2+a_3b_4))_{\ell}a_5b_6,
+% \qquad
+% \theta=a_1b_2+a_3b_4,
+% \\
+% c_1(\theta)=b_2,
+% \qquad
+% c_3(\theta)=b_4,
+% \\
+% \lambda_1=(5,\{\ell:1\triangleright c_1(\theta)\}),
+% \qquad
+% \lambda_2=(5,\{\ell:3\triangleright c_3(\theta)\}).
+% \end{gathered}
+% \label{eq:lookahead-continuation-example}
+% \end{equation}
+
+% The consuming positions of the surrounding expression are only $5$ and
+% $6$, but the lookahead body $\theta$ has two possible initial branches.
+% After the first symbol of the lookahead body is matched, the residual
+% continuations are $c_1(\theta)$ and $c_3(\theta)$. Hence, the consuming
+% position $5$ is refined into the two continuation locations
+% $\lambda_1$ and $\lambda_2$.
+
+% Both locations project to the same consuming position $5$, but they
+% carry different residual information from the lookahead assertion.
+% This refinement is structural: it records which lookahead residual is
+% associated with a consuming position, while the finer distinction
+% between different complete derivations is left to the trace semantics.
+
+% % ------------------------------------------------------------
+% \subsection{First, Last, and Follow over Continuation Locations}
+% \label{sec:first-last-follow}
+% % ------------------------------------------------------------
+
+% The position automaton is generated by the structural functions
+% $\operatorname{First}$, $\operatorname{Last}$, and
+% $\operatorname{Follow}$. We lift these functions from marked positions
+% to continuation locations. A positive lookahead assertion has no
+% consuming location of its own; its effect is represented instead by a
+% nullable continuation context.
+
+% Let $X$ and $Y$ be sets of continuation contexts. Their context product
+% is
+% \begin{equation}
+% X\otimes Y
+% =
+% \{\Gamma\cup\Delta
+% \mid
+% \Gamma\in X,\ \Delta\in Y\}.
+% \label{eq:context-product}
+% \end{equation}
+% For $S\subseteq\Sigma\times\operatorname{Loc}_{\mathrm{la}}(r)$ and
+% $P\subseteq\operatorname{Loc}_{\mathrm{la}}(r)$, define
+% \begin{equation}
+% \begin{gathered}
+% X\odot S
+% =
+% \{(a,(p,\Gamma\cup\Delta))
+% \mid
+% \Delta\in X,\ (a,(p,\Gamma))\in S\},
+% \\[1mm]
+% X\odot P
+% =
+% \{(p,\Gamma\cup\Delta)
+% \mid
+% \Delta\in X,\ (p,\Gamma)\in P\}.
+% \end{gathered}
+% \label{eq:context-action}
+% \end{equation}
+
+% The lookahead-aware nullable-context set is defined by
+% \begin{equation}
+% \mathsf{Eps}_{\mathrm{la}}(e)
+% =
+% \begin{cases}
+% \emptyset,
+% &
+% e=\emptyset \text{ or } e=a_p,
+% \\
+% \{\emptyset\},
+% &
+% e=\varepsilon \text{ or } e=r^*,
+% \\
+% \mathsf{Eps}_{\mathrm{la}}(r)
+% \cup
+% \mathsf{Eps}_{\mathrm{la}}(s),
+% &
+% e=r+s,
+% \\
+% \mathsf{Eps}_{\mathrm{la}}(r)
+% \otimes
+% \mathsf{Eps}_{\mathrm{la}}(s),
+% &
+% e=r\cdot s,
+% \\
+% \operatorname{Ctx}_{\ell}(\theta),
+% &
+% e=(\lookahead \theta)_\ell .
+% \end{cases}
+% \label{eq:eps-la}
+% \end{equation}
+
+% The first-location function
+% $\operatorname{First}_{\mathrm{la}}(e)
+% \subseteq
+% \Sigma\times\operatorname{Loc}_{\mathrm{la}}(e)$
+% is defined by
+% \begin{equation}
+% \operatorname{First}_{\mathrm{la}}(e)
+% =
+% \begin{cases}
+% \emptyset,
+% &
+% e=\emptyset,\ \varepsilon,\ \text{or }(\lookahead \theta)_\ell,
+% \\
+% \{(a,(p,\emptyset))\},
+% &
+% e=a_p,
+% \\
+% \operatorname{First}_{\mathrm{la}}(r)
+% \cup
+% \operatorname{First}_{\mathrm{la}}(s),
+% &
+% e=r+s,
+% \\
+% \operatorname{First}_{\mathrm{la}}(r)
+% \cup
+% \mathsf{Eps}_{\mathrm{la}}(r)
+% \odot
+% \operatorname{First}_{\mathrm{la}}(s),
+% &
+% e=r\cdot s,
+% \\
+% \operatorname{First}_{\mathrm{la}}(r),
+% &
+% e=r^* .
+% \end{cases}
+% \label{eq:first-la}
+% \end{equation}
+
+% The last-location function
+% $\operatorname{Last}_{\mathrm{la}}(e)
+% \subseteq
+% \operatorname{Loc}_{\mathrm{la}}(e)$
+% is defined by
+% \begin{equation}
+% \operatorname{Last}_{\mathrm{la}}(e)
+% =
+% \begin{cases}
+% \emptyset,
+% &
+% e=\emptyset,\ \varepsilon,\ \text{or }(\lookahead \theta)_\ell,
+% \\
+% \{(p,\emptyset)\},
+% &
+% e=a_p,
+% \\
+% \operatorname{Last}_{\mathrm{la}}(r)
+% \cup
+% \operatorname{Last}_{\mathrm{la}}(s),
+% &
+% e=r+s,
+% \\
+% \operatorname{Last}_{\mathrm{la}}(s)
+% \cup
+% \mathsf{Eps}_{\mathrm{la}}(s)
+% \odot
+% \operatorname{Last}_{\mathrm{la}}(r),
+% &
+% e=r\cdot s,
+% \\
+% \operatorname{Last}_{\mathrm{la}}(r),
+% &
+% e=r^* .
+% \end{cases}
+% \label{eq:last-la}
+% \end{equation}
+
+% Consequently, the zero-width effect of lookahead is visible through
+% concatenation:
+% \begin{equation}
+% \begin{gathered}
+% \operatorname{First}_{\mathrm{la}}((\lookahead \theta)_\ell r)
+% =
+% \operatorname{Ctx}_{\ell}(\theta)
+% \odot
+% \operatorname{First}_{\mathrm{la}}(r),
+% \\[1mm]
+% \operatorname{Last}_{\mathrm{la}}(r(\lookahead \theta)_\ell)
+% =
+% \operatorname{Ctx}_{\ell}(\theta)
+% \odot
+% \operatorname{Last}_{\mathrm{la}}(r).
+% \end{gathered}
+% \label{eq:first-last-lookahead-consequence}
+% \end{equation}
+
+% The follow-location function
+% $\operatorname{Follow}_{\mathrm{la}}(e,\lambda)
+% \subseteq
+% \Sigma\times\operatorname{Loc}_{\mathrm{la}}(e)$
+% is initialized by
+% \begin{equation}
+% \begin{gathered}
+% \operatorname{Follow}_{\mathrm{la}}(e,0)
+% =
+% \operatorname{First}_{\mathrm{la}}(e),
+% \\
+% \operatorname{Follow}_{\mathrm{la}}(\emptyset,\lambda)
+% =
+% \operatorname{Follow}_{\mathrm{la}}(\varepsilon,\lambda)
+% =
+% \operatorname{Follow}_{\mathrm{la}}(a_p,\lambda)
+% =
+% \operatorname{Follow}_{\mathrm{la}}((\lookahead \theta)_\ell,\lambda)
+% =
+% \emptyset .
+% \end{gathered}
+% \label{eq:follow-initial-basic}
+% \end{equation}
+
+% For compound expressions,
+% \begin{equation}
+% \operatorname{Follow}_{\mathrm{la}}(r+s,\lambda)
+% =
+% \begin{cases}
+% \operatorname{Follow}_{\mathrm{la}}(r,\lambda),
+% &
+% \lambda\in\operatorname{Loc}_{\mathrm{la}}(r),
+% \\
+% \operatorname{Follow}_{\mathrm{la}}(s,\lambda),
+% &
+% \lambda\in\operatorname{Loc}_{\mathrm{la}}(s),
+% \end{cases}
+% \label{eq:follow-union}
+% \end{equation}
+% \begin{equation}
+% \operatorname{Follow}_{\mathrm{la}}(r\cdot s,\lambda)
+% =
+% \begin{cases}
+% \operatorname{Follow}_{\mathrm{la}}(r,\lambda),
+% &
+% \lambda\in
+% \operatorname{Loc}_{\mathrm{la}}(r)
+% \setminus
+% \operatorname{Last}_{\mathrm{la}}(r),
+% \\
+% \operatorname{Follow}_{\mathrm{la}}(r,\lambda)
+% \cup
+% \operatorname{First}_{\mathrm{la}}(s),
+% &
+% \lambda\in\operatorname{Last}_{\mathrm{la}}(r),
+% \\
+% \operatorname{Follow}_{\mathrm{la}}(s,\lambda),
+% &
+% \lambda\in\operatorname{Loc}_{\mathrm{la}}(s),
+% \end{cases}
+% \label{eq:follow-concat}
+% \end{equation}
+% \begin{equation}
+% \operatorname{Follow}_{\mathrm{la}}(r^*,\lambda)
+% =
+% \begin{cases}
+% \operatorname{Follow}_{\mathrm{la}}(r,\lambda),
+% &
+% \lambda\in
+% \operatorname{Loc}_{\mathrm{la}}(r)
+% \setminus
+% \operatorname{Last}_{\mathrm{la}}(r),
+% \\
+% \operatorname{Follow}_{\mathrm{la}}(r,\lambda)
+% \cup
+% \operatorname{First}_{\mathrm{la}}(r),
+% &
+% \lambda\in\operatorname{Last}_{\mathrm{la}}(r).
+% \end{cases}
+% \label{eq:follow-star}
+% \end{equation}
+
+% In particular, crossing a positive-lookahead boundary enriches the
+% successor locations. For
+% $\lambda\in\operatorname{Last}_{\mathrm{la}}(r)$,
+% \begin{equation}
+% \operatorname{Follow}_{\mathrm{la}}
+% (r\cdot(\lookahead \theta)_\ell\cdot s,\lambda)
+% =
+% \operatorname{Follow}_{\mathrm{la}}(r,\lambda)
+% \cup
+% \operatorname{Ctx}_{\ell}(\theta)
+% \odot
+% \operatorname{First}_{\mathrm{la}}(s).
+% \label{eq:follow-lookahead-consequence}
+% \end{equation}
+% Thus, positive lookahead is treated as a zero-width expression whose
+% effect is carried by $\mathsf{Eps}_{\mathrm{la}}$ and propagated
+% through the ordinary concatenation clauses.
+
+% % ------------------------------------------------------------
+% \subsection{Lookahead-Aware Continuation Position Automaton}
+% \label{sec:continuation-automaton}
+% % ------------------------------------------------------------
+
+% The preceding functions define the syntactic skeleton of the automaton
+% in the same way as the classical position construction, except that
+% states are continuation locations rather than ordinary positions.
+
+% The state space is
+% \begin{equation}
+% Q_{\mathrm{la}}
+% =
+% \operatorname{Loc}_{\mathrm{la}}(\overline r)
+% \cup
+% \{0\}.
+% \label{eq:state-space}
+% \end{equation}
+
+% The transition relation is
+% \begin{equation}
+% \lambda\xrightarrow{a}\lambda'
+% \Longleftrightarrow
+% (a,\lambda')
+% \in
+% \operatorname{Follow}_{\mathrm{la}}(\overline r,\lambda).
+% \label{eq:transition}
+% \end{equation}
+
+% The lookahead-aware continuation position automaton is
+% \begin{equation}
+% \mathcal A_{\mathrm{la}}(\overline r)
+% =
+% \langle
+% Q_{\mathrm{la}},
+% \Sigma,
+% \delta_{\mathrm{la}},
+% 0,
+% F_{\mathrm{la}}
+% \rangle .
+% \label{eq:continuation-automaton}
+% \end{equation}
+
+% The accepting states are
+% \begin{equation}
+% F_{\mathrm{la}}
+% =
+% \operatorname{Last}_{\mathrm{la}}(\overline r)
+% \cup
+% \{0\mid \mathsf{Eps}_{\mathrm{la}}(\overline r)\ne\emptyset\}.
+% \label{eq:final}
+% \end{equation}
+
+% The transition relation above describes the consuming skeleton. In the
+% semantic interpretation of runs, a transition into a location
+% $(p,\Gamma)$ at boundary $b$ is enabled only when the symbol at $b+1$
+% matches $\operatorname{lab}(p)$ and the context $\Gamma$ is satisfied at
+% the corresponding lookahead boundary in the sense of
+% \eqref{eq:context-satisfaction}. If a continuation context is introduced
+% by a trailing lookahead and carried by an accepting location, it is
+% checked at the final boundary of the match.
+
+% The projection $\pi(p,\Gamma)=p$ removes the continuation context and
+% recovers the underlying consuming position. Thus, the automaton refines
+% the classical position automaton without changing its consuming
+% skeleton.
+
+% \begin{theorem}[Language preservation]
+% \label{thm:language-preservation}
+% Under the guarded interpretation of continuation contexts, for every
+% positive-lookahead regular expression $\overline r$,
+% \begin{equation}
+% \mathcal L(\mathcal A_{\mathrm{la}}(\overline r))
+% =
+% \mathcal L(\overline r).
+% \label{eq:language-preservation}
+% \end{equation}
+% \end{theorem}
+
+% % ============================================================
+% \section{Ambiguity of Lookahead-Aware Position Automata}
+% \label{sec:ambiguity}
+% % ============================================================
+
+
+% The continuation-enriched position automaton introduced in
+% Section~\ref{sec:lookahead-position} preserves the residual matching
+% behavior induced by positive lookahead. However, a continuation
+% location may still admit multiple internal derivations of the same
+% lookahead condition.
+
+% Therefore, we further refine the semantics with position traces. The
+% purpose of this refinement is not to change the recognized language,
+% but to distinguish different structural explanations of the same
+% successful match.
+
+
+
+% % ------------------------------------------------------------
+% \subsection{Witness-Refined Matching Semantics}
+% \label{sec:witness-refined-semantics}
+% % ------------------------------------------------------------
+
+
+% The lookahead-indexed semantics records the inspected window of a
+% positive-lookahead assertion, while the continuation-based automaton
+% records the residual matching behavior. Neither representation records
+% the concrete derivation used inside the lookahead expression.
+
+% For a marked lookahead occurrence $(\lookahead r)_\ell$, a position
+% trace is a finite sequence $\tau=[p_1,p_2,\ldots,p_m]$, where each
+% $p_i$ is a marked position visited during the matching of the asserted
+% expression $r$. We write $w,[i,j]\models_{\tau} r$ when $r$ matches
+% the window $[i,j]$ with consuming position trace $\tau$.
+
+% The trace semantics refines the ordinary window semantics:
+
+% \begin{equation}
+% w,[i,j]\models_{\tau} r
+% \Longrightarrow
+% w,[i,j]\models r .
+% \label{eq:trace-refinement}
+% \end{equation}
+
+
+% For a positive-lookahead expression $r\cdot(\lookahead s)_\ell$, a
+% lookahead witness is represented by
+
+% \begin{equation}
+% \eta=(\ell,k,\tau_s),
+% \qquad
+% w,[j,k]\models_{\tau_s}s,
+% \label{eq:lookahead-witness}
+% \end{equation}
+
+% where $k$ is the endpoint of the inspected lookahead window and
+% $\tau_s$ is the internal position trace of the asserted expression
+% $s$.
+
+% A full witness-refined trace is written as $\chi=(\rho,\mathcal E)$,
+% where $\rho$ is the consuming trace of the surrounding expression and
+% $\mathcal E$ is a finite sequence of lookahead witnesses. We write
+% $w,[i,j]\models_{\chi} r$ when $r$ matches the window $[i,j]$ with
+% witness-refined trace $\chi$.
+
+% The corresponding witness-refined match language is
+
+% \begin{equation}
+% \mathcal M_{\mathsf{tr}}(r)
+% =
+% \{
+% (w,i,j,\chi)
+% \mid
+% w,[i,j]\models_{\chi}r
+% \}.
+% \label{eq:trace-match-language}
+% \end{equation}
+
+
+% By forgetting the trace component, the ordinary match language is
+% recovered:
+
+% \begin{equation}
+% \mathcal M(r)
+% =
+% \{
+% (w,i,j)
+% \mid
+% \exists\chi.
+% (w,i,j,\chi)
+% \in
+% \mathcal M_{\mathsf{tr}}(r)
+% \}.
+% \label{eq:trace-projection}
+% \end{equation}
+
+
+% The consuming projection of a witness-refined trace is defined by
+% $\operatorname{proj}_{\mathsf{cons}}(\rho,\mathcal E)=\rho$.
+
+
+
+% % ------------------------------------------------------------
+% \subsection{Example: Multiple Lookahead Derivations}
+% \label{sec:multiple-lookahead-derivations}
+% % ------------------------------------------------------------
+
+
+% Consider the marked expression
+
+% \begin{equation}
+% \alpha
+% =
+% (\lookahead (a_1b_2+a_3b_4))_\ell a_5b_6 .
+% \label{eq:ambiguity-example}
+% \end{equation}
+
+
+% The consuming part of the surrounding expression is uniquely
+% determined by the trace $\rho=[5,6]$. However, the lookahead assertion
+% has two different internal derivations. The left branch gives the
+% lookahead trace $[1,2]$, while the right branch gives the lookahead
+% trace $[3,4]$.
+
+% These two alternatives can be represented as
+
+% \begin{equation}
+% \begin{gathered}
+% \eta_1=(\ell,k,[1,2]),
+% \qquad
+% \eta_2=(\ell,k,[3,4]),
+% \\
+% \chi_1=(\rho,[\eta_1]),
+% \qquad
+% \chi_2=(\rho,[\eta_2]).
+% \end{gathered}
+% \label{eq:two-lookahead-witnesses}
+% \end{equation}
+
+
+% Both witness-refined traces justify the same consuming behavior:
+
+% \begin{equation}
+% \operatorname{proj}_{\mathsf{cons}}(\chi_1)
+% =
+% \operatorname{proj}_{\mathsf{cons}}(\chi_2)
+% =
+% [5,6],
+% \qquad
+% \chi_1\neq\chi_2 .
+% \label{eq:same-consuming-different-witness}
+% \end{equation}
+
+
+% Therefore, the ambiguity does not come from different accepted words
+% or different consuming automaton paths. Instead, it arises from
+% different internal derivations of the zero-width lookahead assertion.
+
+
+
+% % ------------------------------------------------------------
+% \subsection{Position-Trace Ambiguity}
+% \label{sec:position-trace-ambiguity}
+% % ------------------------------------------------------------
+
+
+% \begin{definition}[Position-trace ambiguity]
+
+% A positive-lookahead regular expression $r$ is
+% \emph{position-trace ambiguous} if there exist a word $w$, a matching
+% window $[i,j]$, and two witness-refined traces $\chi_1$ and $\chi_2$
+% such that
+
+% \begin{equation}
+% \begin{gathered}
+% \chi_1\neq\chi_2,
+% \\
+% w,[i,j]\models_{\chi_1}r
+% \quad\text{and}\quad
+% w,[i,j]\models_{\chi_2}r,
+% \\
+% \operatorname{proj}_{\mathsf{cons}}(\chi_1)
+% =
+% \operatorname{proj}_{\mathsf{cons}}(\chi_2).
+% \end{gathered}
+% \label{eq:position-trace-ambiguity}
+% \end{equation}
+
+% \end{definition}
+
+
+% This notion separates consuming behavior from assertion evidence.
+% Consequently, the continuation-enriched position automaton preserves
+% the matching structure required for ambiguity analysis, while the
+% ordinary language semantics remains unchanged.

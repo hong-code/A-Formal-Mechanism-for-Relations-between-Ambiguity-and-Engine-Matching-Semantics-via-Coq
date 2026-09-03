@@ -1,0 +1,1185 @@
+\documentclass[UTF8,a4paper,12pt]{ctexart}
+
+\usepackage[left=2.45cm,right=2.45cm,top=2.55cm,bottom=2.55cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,bm}
+\usepackage{booktabs,longtable,tabularx,array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{fancyhdr}
+\usepackage{setspace}
+\usepackage[most]{tcolorbox}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!55!black,
+  citecolor=green!42!black,
+  urlcolor=blue!65!black,
+  pdftitle={Ambiguity in Position Automaton with Lookaround: Coq/Rocq 文献与协作研究框架},
+  pdfauthor={Research Collaboration Notes}
+}
+
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.24em}
+\linespread{1.22}
+\setlist[itemize]{leftmargin=2.2em,itemsep=0.25em,topsep=0.3em}
+\setlist[enumerate]{leftmargin=2.6em,itemsep=0.25em,topsep=0.3em}
+\setlength{\headheight}{15pt}
+
+\definecolor{codebg}{RGB}{247,247,247}
+\definecolor{codeframe}{RGB}{210,210,210}
+\definecolor{codekw}{RGB}{0,82,155}
+\definecolor{codecomment}{RGB}{75,125,75}
+
+\lstdefinelanguage{Coq}{
+  morekeywords={Inductive,Definition,Fixpoint,Program,Record,Class,Instance,
+    Theorem,Lemma,Corollary,Proof,Qed,Defined,Require,Import,Module,End,
+    Section,Context,Variable,Notation,match,with,end,fun,forall,exists,
+    let,in,if,then,else,Prop,Type,nat,bool,list,option,true,false,Some,None},
+  sensitive=true,
+  morecomment=[s]{(*}{*)}
+}
+
+\lstset{
+  language=Coq,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{codekw}\bfseries,
+  commentstyle=\color{codecomment},
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=8pt,
+  xleftmargin=1.5em,
+  framexleftmargin=1.2em,
+  captionpos=b
+}
+
+\newtcolorbox{paperquote}[1]{
+  enhanced,breakable,
+  colback=blue!2,colframe=blue!45!black,
+  boxrule=0.6pt,arc=1.2mm,
+  left=1.1em,right=1.1em,top=0.7em,bottom=0.7em,
+  title={论文原文（#1）},fonttitle=\bfseries,
+  before skip=0.8em,after skip=0.8em
+}
+
+\newtcolorbox{directlink}[1]{
+  enhanced,breakable,
+  colback=orange!3,colframe=orange!65!black,
+  boxrule=0.6pt,arc=1.2mm,
+  left=1.1em,right=1.1em,top=0.7em,bottom=0.7em,
+  title={对目标课题的直接启发：#1},fonttitle=\bfseries,
+  before skip=0.6em,after skip=0.8em
+}
+
+\newtcolorbox{coqbox}[1]{
+  enhanced,breakable,
+  colback=green!2,colframe=green!45!black,
+  boxrule=0.6pt,arc=1.2mm,
+  left=1.1em,right=1.1em,top=0.7em,bottom=0.7em,
+  title={Coq/Rocq 设计启发：#1},fonttitle=\bfseries,
+  before skip=0.6em,after skip=0.8em
+}
+
+\newtcolorbox{boundarybox}[1]{
+  enhanced,breakable,
+  colback=gray!3,colframe=gray!55!black,
+  boxrule=0.6pt,arc=1.2mm,
+  left=1.1em,right=1.1em,top=0.7em,bottom=0.7em,
+  title={论文边界：#1},fonttitle=\bfseries,
+  before skip=0.6em,after skip=0.8em
+}
+
+\newtcolorbox{conceptbox}[1]{
+  enhanced,breakable,
+  colback=purple!2,colframe=purple!55!black,
+  boxrule=0.6pt,arc=1.2mm,
+  left=1.1em,right=1.1em,top=0.7em,bottom=0.7em,
+  title={关键概念：#1},fonttitle=\bfseries,
+  before skip=0.6em,after skip=0.8em
+}
+
+\newtheorem{definition}{定义}[section]
+\newtheorem{theorem}[definition]{定理目标}
+\newtheorem{remark}[definition]{说明}
+
+\newcommand{\PA}{\mathsf{PA}}
+\newcommand{\Run}{\mathsf{Run}}
+\newcommand{\Trace}{\mathsf{Trace}}
+\newcommand{\RelAmb}{\mathsf{RelAmb}}
+\newcommand{\RealAmb}{\mathsf{RealAmb}}
+\newcommand{\ovalfn}{\mathsf{oval}}
+\newcommand{\abstractfn}{\mathsf{abstract}}
+\newcommand{\WF}{\mathsf{WF}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Ambiguity、Position Automaton、Lookaround 与 Coq/Rocq}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\title{\bfseries 面向 ``Ambiguity in Position Automaton with Lookaround'' 的\\
+Coq/Rocq 文献综述与协作研究框架}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+
+\tableofcontents
+\newpage
+
+\section{研究范围}
+
+五篇核心论文并未直接完成“带 lookaround 的位置自动机歧义判定”。它们分别提供所需拼图：
+
+\begin{itemize}
+  \item Braibant--Pous：可信自动机判定器的 Coq 证明架构；
+  \item Zhuchko 等：lookaround 的位置上下文、反转和位置相关 nullability；
+  \item Chattopadhyay 等：Coq 窗口语义、Oracle abstraction 与 NFA 风格匹配；
+  \item De Santo 等：完整 JavaScript 语义中路径、方向、捕获和 continuation 的复杂性边界；
+  \item Barri\`ere 等：在 Rocq 中保存所有有序路径及 lookaround 内部树的语义方案。
+\end{itemize}
+
+\section{目标课题的最小概念框架}
+
+\subsection{位置自动机与位置身份}
+
+位置自动机通常指 Glushkov position automaton。其第一步是对每个消费字符的语法出现进行唯一编号。例如
+\[
+r=(a\mid a)b
+\]
+线性化为
+\[
+\bar r=(a_1\mid a_2)b_3.
+\]
+虽然 $a_1$ 与 $a_2$ 的字符标签相同，但它们是不同语法位置。位置自动机的非初始状态与字符位置一一对应，因此输入 $ab$ 可产生两条不同的位置运行：
+\[
+q_0\to 1\to 3,
+\qquad
+q_0\to 2\to 3.
+\]
+这类运行保留了“字符来自表达式哪个位置”的信息，是研究结构歧义的基础。
+
+\subsection{目标歧义的暂定定义}
+
+\begin{definition}[位置路径歧义]
+给定完整输入 $w$ 和匹配窗口 $(i,j]$，若存在两条不同的接受位置序列，则称自动机在该窗口上存在位置路径歧义：
+\[
+\exists \rho_1,\rho_2.\;
+\Run(A,w,i,j,\rho_1)\land
+\Run(A,w,i,j,\rho_2)\land
+\rho_1\neq\rho_2.
+\]
+\end{definition}
+
+该定义有意弱于“完整解析树歧义”，因为不同解析树可能在空串分解或 star 迭代结构上不同，却具有相同消费位置序列。协作中必须始终区分：
+
+\[
+\text{parse-tree ambiguity}
+\quad\text{与}\quad
+\text{position-path ambiguity}.
+\]
+
+\subsection{Lookaround 带来的新约束}
+
+Lookaround 是零宽断言。它不增加消费位置，却要求在某个输入边界检查前文或后文。加入 lookaround 后，一条位置运行至少还依赖：
+
+\begin{itemize}
+  \item 每个断言的求值边界；
+  \item lookbehind 的反向读取或反转语义；
+  \item 嵌套断言的分层求值；
+  \item 两条候选路径上的断言是否能由同一真实字符串同时满足。
+\end{itemize}
+
+最后一点导致 Oracle abstraction 的可实现性问题：任意 Boolean tape 上的两条路径未必对应任何真实 lookaround 输入。
+
+
+\section{关键概念详解：从普通正则到带 Lookaround 的位置路径}
+
+本节统一后续文献分析中反复出现的概念。需要注意，下面有些概念来自经典自动机理论，有些来自五篇核心论文；本文将明确标出二者之间的关系，避免把本文拟议的 Guarded Position Automaton 误写成已有论文结论。
+
+\subsection{正则表达式的匹配对象：语言、窗口与匹配结果}
+
+对经典正则表达式，最粗粒度的语义是语言语义：
+\[
+w\in\mathcal L(r).
+\]
+它只回答完整字符串 $w$ 是否属于 $r$ 的语言。然而，lookaround 检查的是一个字符串边界前后的上下文，匹配结果通常只消费完整字符串中的一个子窗口。因此 Chattopadhyay 等采用
+\[
+w,(i,j]\models r,
+\]
+表示表达式 $r$ 在完整字符串 $w$ 的窗口 $(i,j]$ 上成立\cite[pp.~2--3]{chattopadhyay2025}。这里必须同时保存：完整字符串、窗口起点和窗口终点。只保存子串 $w[i:j]$ 会丢失 lookahead/lookbehind 所检查的外部上下文。
+
+Zhuchko 等使用 \emph{span} 表达同一思想。一个 span 保存
+\[
+\langle left^r,match,right\rangle,
+\]
+其中 $match$ 是被消费部分，$left$ 和 $right$ 是两侧上下文\cite[pp.~2--5]{zhuchko2024}。窗口是基于索引的表示，span 是基于字符串分解的表示；二者都比单纯的语言成员关系保存更多位置信息。
+
+\begin{conceptbox}{为什么目标课题必须固定同一窗口}
+如果两条路径从不同起点开始，或在不同终点结束，它们可能只是两个不同的匹配结果，而不是同一匹配的结构歧义。第一阶段建议把歧义限定为：同一完整输入、同一起点、同一终点下存在两条不同消费位置序列。
+\end{conceptbox}
+
+\subsection{位置自动机与 Glushkov 线性化}
+
+位置自动机通常指 Glushkov position automaton。构造的第一步是对正则表达式中的每个\textbf{字符出现}进行唯一编号。例如
+\[
+r=(a\mid a)b
+\]
+线性化为
+\[
+\bar r=(a_1\mid a_2)b_3.
+\]
+虽然 $a_1$ 与 $a_2$ 的字符标签相同，但它们对应语法树中的不同叶节点。设位置集合为 $\operatorname{Pos}(\bar r)$，标签函数为 $\lambda$。经典构造使用四个对象：
+\begin{align*}
+\mathsf{Nullable}(r)&:\text{$r$ 是否匹配空串},\\
+\mathsf{First}(r)&:\text{可能作为首个消费位置的集合},\\
+\mathsf{Last}(r)&:\text{可能作为最后消费位置的集合},\\
+\mathsf{Follow}(r)&:\text{可能相邻消费的位置对}.
+\end{align*}
+
+自动机状态集合为
+\[
+Q=\{q_0\}\cup\operatorname{Pos}(\bar r),
+\]
+并按 $\mathsf{First}$ 和 $\mathsf{Follow}$ 添加字符转移。对 $\bar r=(a_1\mid a_2)b_3$，输入 $ab$ 有两条接受运行：
+\[
+q_0\xrightarrow{a}1\xrightarrow{b}3,
+\qquad
+q_0\xrightarrow{a}2\xrightarrow{b}3.
+\]
+位置自动机的价值不只是识别语言，而是保留“输入字符由表达式中的哪个字符原子消费”。这正是研究 position-path ambiguity 的基础。
+
+\subsection{五种容易混淆的歧义}
+
+\paragraph{解析树歧义。}
+同一输入和窗口存在两棵不同的完整匹配推导树。推导树可以记录 alternation 选择、连接切分和 star 每次迭代的结构。
+
+\paragraph{位置路径歧义。}
+同一输入和窗口存在两条不同的消费位置序列：
+\[
+\rho_1\neq\rho_2.
+\]
+这是本文第一阶段的目标对象。它能够区分 $a_1\mid a_2$，但未必区分仅在空串推导或 star 分组方式上不同的解析。
+
+\paragraph{结果歧义。}
+不同路径产生不同终点或不同捕获组结果。De Santo 等指出，捕获组把问题从 recognition 变成 segmentation；引擎必须返回各子表达式匹配的区间，而不仅是 Boolean 结果\cite[p.~2]{desanto2024}。
+
+\paragraph{优先级敏感性。}
+多条路径都成功，但语义规定左分支、greedy 或 lazy 路径的优先级。JavaScript 的结果可以是确定的，同时底层仍存在多条成功路径。
+
+\paragraph{性能歧义。}
+回溯引擎可能探索大量重叠路径。存在两条路径只证明非唯一性，不等价于指数 ReDoS；后者还要求分析路径数量随输入长度的增长。
+
+\begin{conceptbox}{为什么不能用 Coq 的证明项不等直接定义歧义}
+若窗口匹配写成 \texttt{Prop}，不同证明项可能受到 proof irrelevance 的影响，且不便计算。更可靠的设计是显式定义 \texttt{Trace}、位置序列或分支证书，再用归纳关系证明该证书对应匹配。
+\end{conceptbox}
+
+\subsection{四类 Lookaround 与零宽语义}
+
+四类断言分别为
+\[
+(?=r),\quad(?!r),\quad(?<=r),\quad(?<!r).
+\]
+它们共同的特点是 \emph{zero-width}：断言检查上下文，但主匹配位置不因断言而前进。Positive lookaround 要求 body 存在匹配，negative lookaround 要求 body 不存在匹配；lookahead 向后文检查，lookbehind 向前文检查。
+
+不同论文中的具体语义并不完全相同：
+\begin{itemize}
+  \item Chattopadhyay 的正 lookahead body 要覆盖到字符串末尾；常见 PCRE 的 prefix-existence lookahead 需通过在 body 后连接 $\Sigma^*$ 表达\cite[p.~3]{chattopadhyay2025}；
+  \item Zhuchko 用 location/span 表示从当前位置开始或结束的某个 span 存在匹配，并采用 POSIX leftmost-longest 顶层语义\cite[pp.~4--10]{zhuchko2024}；
+  \item JavaScript 中 positive lookaround 还可能设置捕获组，lookaround 内部路径具有 backtracking priority\cite[pp.~4--8]{barriere2026}。
+\end{itemize}
+因此，协作论文必须明确采用哪一种 lookaround 规格，不能只写“支持 lookaround”。
+
+\subsection{Location、Span、Zipper 与方向}
+
+Zhuchko 等把 location 定义为一个 list zipper：
+\[
+\mathsf{Loc}=\Sigma^*\times\Sigma^*.
+\]
+在 $w=uv$ 的边界处，表示为 $\langle u^r,v\rangle$。左侧前缀反向保存，因此向前和向后读取都可以使用列表头操作。论文原文称：
+\begin{paperquote}{Zhuchko et al., p.~2}
+``A location is a variant of a list zipper that facilitates traversing a word forwards and backwards.''
+\end{paperquote}
+
+Lookbehind 的困难不只是“查看前缀”，还在于匹配方向发生变化。Zhuchko 通过 regex/span reversal 建立
+\[
+sp\models R\iff sp^r\models R^r.
+\]
+Barri\`ere 等则在状态中显式保存方向 $d\in\{\rightarrow,\leftarrow\}$，并使用输入 zipper 支持双向读取\cite[pp.~6--8]{barriere2026}。两种路线都可用于 Coq，但必须在边界编号、位置序列和反转之间证明一致性。
+
+\subsection{位置相关 Nullability}
+
+普通正则的 $\mathsf{Nullable}(r)$ 是静态性质。加入 lookaround 后，空匹配是否成立取决于当前位置：
+\[
+\mathsf{Nullable}(r,w,i)
+\quad\text{或}\quad
+\mathsf{null}(r,x).
+\]
+Zhuchko 等明确写道：
+\begin{paperquote}{Zhuchko et al., p.~6}
+``When lookarounds are used, the notion of nullability becomes location dependent.''
+\end{paperquote}
+
+这一事实直接说明经典位置自动机的 $\mathsf{First}$、$\mathsf{Last}$、$\mathsf{Follow}$ 不能原封不动地处理 lookaround。本文拟议的 guard 化可以理解为把静态集合扩展为携带边界条件的关系，例如
+\[
+\mathsf{Follow}_G(r)
+\subseteq
+\operatorname{Pos}(r)\times\mathsf{Guard}\times\operatorname{Pos}(r).
+\]
+这不是 Zhuchko 论文已经提出的结构，而是从其 location-dependent semantics 推导出的设计方向。
+
+\subsection{Oracle Regex、O-string 与真实 Valuation}
+
+Chattopadhyay 等把 lookaround 分层计算。对有限变量集 $V$，一个 o-string 为
+\[
+\langle w,\beta\rangle,
+\qquad |\beta|=|w|+1,
+\]
+其中 $\beta_i$ 是输入第 $i$ 个边界上的 Boolean valuation。Oracle Regex 用零宽 query
+\[
+Q^+(v),\qquad Q^-(v)
+\]
+检查当前边界上变量 $v$ 的真假\cite[pp.~4--5]{chattopadhyay2025}。
+
+函数 $\abstractfn(r)$ 把 maximal lookaround 替换为 query，$\ovalfn(r,w)$ 计算真实输入 $w$ 上的边界 valuation。该抽象允许外层匹配器不再重复执行内层 lookaround。但静态歧义搜索会产生一个新问题：任意良构 $\beta$ 未必等于任何 $\ovalfn(r,w)$。因此需要区分
+\[
+\RelAmb(r)
+\quad\text{与}\quad
+\RealAmb(r).
+\]
+前者允许任意 Oracle tape，后者要求 tape 由真实 lookaround 语义生成。
+
+\subsection{Marked Regular Expressions 与位置自动机的关系}
+
+Marked Regular Expressions 在正则语法树的字符原子上放置 marks，用这些 marks 表示对应 NFA 的活动状态。Chattopadhyay 等说明：
+\begin{paperquote}{Chattopadhyay et al., p.~6}
+``The marked regular expression approach directly deals with the syntax tree of regular expressions.''
+\end{paperquote}
+
+它与位置自动机都把字符出现位置视为状态信息，因此非常接近目标课题。但是，普通 NFA simulation 保存的是活动位置\textbf{集合}。若两条来源到达同一位置，它们会被合并；这对 Boolean matching 是正确的，对 ambiguity 则会丢失路径多重性。后续需要显式 trace、来源计数或同步积，而不能仅复用 active-set 语义。
+
+\subsection{Coq/Rocq 中反复出现的五个证明工程概念}
+
+\paragraph{Strict positivity。}
+归纳类型不能在构造器参数的负位置递归引用自身。Chattopadhyay 用正、负匹配关系互递归；Zhuchko 用返回 \texttt{Prop} 的函数；Barri\`ere 将 lookaround body 物化为完整树。三种方案解决的是同一类正性问题。
+
+\paragraph{Reflection 与 reification。}
+Braibant--Pous 把用户目标 reify 为内部语法，运行已验证决策函数，再用规格定理恢复证明。目标歧义判定器也可采用同样结构，并返回 witness。
+
+\paragraph{Fuel。}
+De Santo 和 Barri\`ere 对非结构递归函数增加 fuel，再证明一个充分上界，从而排除 \texttt{OutOfFuel}。Fuel 不是正确性本身；关键是证明给定语义状态存在足够 fuel。
+
+\paragraph{良基递归。}
+Zhuchko 的 $\mathsf{der}$、$\mathsf{null}$ 和存在匹配互递归，使用 lookaround height、剩余输入、表达式大小和调用 phase 的字典序度量。
+
+\paragraph{Witness 与证书。}
+歧义判定的有效输出应至少包含输入、窗口、两条路径和 guard/valuation 信息，并证明该 witness 能被独立检查。这个设计直接对应 Braibant--Pous 在判定失败时返回反例词的思想。
+
+
+\section{五篇核心论文的统一对照}
+
+\begin{longtable}{p{2.8cm}p{0.8cm}p{2.6cm}p{3.8cm}p{3.0cm}}
+\toprule
+论文 & 助理 & 论文真正研究的对象 & 对目标课题可复用的内容 & 仍未解决的关键问题 \\
+\midrule
+\endfirsthead
+\toprule
+论文 & 助理 & 论文真正研究的对象 & 对目标课题可复用的内容 & 仍未解决的关键问题 \\
+\midrule
+\endhead
+Braibant--Pous & Coq & Kleene 代数等式判定 & 反射、reification、自动机证书、正确/完备规格、计算与证明表示分离 & 幂等语义抹去路径多重性，不能直接定义歧义 \\
+Zhuchko et al. & Lean 4 & 带 Boolean operators 和 lookaround 的 POSIX 匹配 & location、span、reversal、位置相关 nullability、互递归终止度量 & 不构造位置自动机，也不分析同一 span 的多条路径 \\
+\shortstack[l]{Chattopadhyay\\et al.} & Coq & 带 lookaround 的窗口布尔匹配 & 正负语义互递归、Oracle Regex、o-string、边界 valuation、Marked Regex & 保持匹配真假，不保持解析或运行数量 \\
+De Santo et al. & Coq & ECMAScript 正则规范的忠实机械化 & continuation、方向进展、fuel、lookaround 捕获副作用、工业语义基准 & 语义远超第一阶段需求，不给出位置自动机模型 \\
+\shortstack[l]{Barri\`ere\\et al.} & Rocq & 完整有序 JavaScript 回溯树 & 保存所有成功/失败路径、lookaround 内部树、方向上下文、与 Warblre 等价 & 树语义不是位置自动机；PikeVM 定理当前不含 lookaround \\
+\bottomrule
+\caption{五篇核心论文与目标课题的对应关系}
+\end{longtable}
+
+
+\section{Braibant 与 Pous：可信歧义判定器的 Coq 架构}
+
+\begin{paperquote}{Braibant and Pous, p.~1}
+``We present a reflexive tactic for deciding the equational theory of Kleene algebras in the Coq proof assistant.''
+\end{paperquote}
+
+\begin{paperquote}{Braibant and Pous, p.~1}
+``The decision procedure is proved correct and complete; a counter-example is returned when the equation does not hold.''
+\end{paperquote}
+
+\subsection{论文问题：把自动机等价提升为任意 Kleene 模型中的等式}
+
+论文并不是验证一个具体字符串匹配器，而是构造一个可在 Coq 中自动证明 Kleene 代数等式的反射式 tactic。Kleene 代数的模型包括正则语言、二元关系和矩阵。有限自动机可以判定正则语言等价，但论文还需形式化 Kozen 的初始性定理，把语言模型中的等价提升为任意 Kleene 代数模型中的等式\cite[pp.~2--4]{braibant2012}。
+
+论文的核心接口是：
+\begin{lstlisting}[caption={反射式判定器的抽象规格}]
+Definition decide_kleene : regex -> regex -> bool := ...
+
+Theorem Kozen94 : forall x y : regex,
+  decide_kleene x y = true <-> x == y.
+\end{lstlisting}
+其方法论可概括为“程序负责计算，规格定理负责把计算结果变成证明”。论文原文写道：
+\begin{paperquote}{Braibant and Pous, p.~3}
+``We program the decision procedure as a Coq function, and prove its correctness and completeness within the proof assistant.''
+\end{paperquote}
+
+\subsection{算法链与语义保持证明}
+
+论文的判定流程包括 strict star form、$\varepsilon$-NFA、消除 $\varepsilon$、确定化和 DFA 等价检查。每一步都建立语义保持，最终组合为判定器的正确性与完备性。若等价不成立，DFA 等价搜索记录一个使两个自动机接受状态不同的词，作为反例证书。
+
+这一设计对歧义研究特别重要：同步积或 witness search 不应只返回 \texttt{true/false}，而应返回
+\[
+(w,i,j,\rho_1,\rho_2,\beta),
+\]
+并证明两条运行均接受、位置序列不同，若声称是真实歧义还应证明 $\beta=\ovalfn(r,w)$。
+
+\subsection{计算表示与证明表示分离}
+
+Kozen 证明适合使用矩阵自动机 $\langle u,M,v\rangle$，其代数语义为 $uM^*v$。但论文强调矩阵表示不适合执行：
+\begin{paperquote}{Braibant and Pous, p.~4}
+``The matricial representation of automata is not efficient.''
+\end{paperquote}
+因此，论文使用高效 NFA/DFA 结构计算，再把它们翻译为适合代数证明的矩阵表示。对应到本课题：
+\begin{itemize}
+  \item 执行层使用有限编号、guard 表、邻接结构和工作队列；
+  \item 证明层使用归纳定义的 guarded run、trace 和 witness validity；
+  \item 翻译定理说明执行层输出的证书满足证明层语义。
+\end{itemize}
+
+\subsection{Typeclass、Proper 与模块化证明}
+
+论文用 Coq typeclasses 组织 typed Kleene algebra，并以 \texttt{Proper} 声明运算保持用户定义等价关系。这为协作工程提供两个启发：一是把字符谓词、guard 满足关系、自动机容器和等价关系拆成接口；二是尽早声明 congruence/Proper，使重写可以穿过语法构造器。
+
+\begin{directlink}{对目标课题的直接启发}
+Braibant--Pous 最适合支撑“如何把歧义搜索器做成一个可信 Coq 决策程序”：可执行搜索、反例/歧义证书、soundness、completeness、反射式入口，以及执行表示与证明表示分离。
+\end{directlink}
+
+\begin{coqbox}{建议复用的规格形态}
+\begin{lstlisting}
+Definition decide_ambiguity
+  (r : LRegex) : option AmbiguityWitness := ...
+
+Theorem decide_ambiguity_sound : forall r wit,
+  decide_ambiguity r = Some wit -> RealAmb r wit.
+
+Theorem decide_ambiguity_complete : forall r,
+  RealAmbiguous r -> exists wit,
+    decide_ambiguity r = Some wit.
+\end{lstlisting}
+第一阶段若只能证明 over-approximation，可把规格拆成 relative soundness 与 witness validation soundness，避免过早声称完整静态判定。
+\end{coqbox}
+
+\begin{boundarybox}{为什么 Kleene 代数不能直接定义路径歧义}
+Kleene 代数满足 $x+x=x$。它刻意把重复分支视为相同代数值，而位置歧义需要保留重复来源。因此只能复用判定器证明工程，不能直接使用其幂等语言等价作为目标歧义语义。
+\end{boundarybox}
+
+
+\section{Zhuchko 等：Lookaround 的位置上下文与双向语义}
+
+\begin{paperquote}{Zhuchko et al., Abstract}
+``We present a formalization of a matching algorithm ... based on locations and symbolic derivatives.''
+\end{paperquote}
+
+\begin{paperquote}{Zhuchko et al., p.~2}
+``Defining and working with locations as zippers and spans allowed a direct and intuitive definition of the universe.''
+\end{paperquote}
+
+\subsection{论文做了什么}
+
+论文在 Lean 4 中形式化扩展正则匹配，语法支持交、补和四类 lookaround，算法基于 location-based symbolic derivatives，并证明相对于 span matching semantics 的正确性\cite[pp.~1--2]{zhuchko2024}。顶层匹配采用 POSIX leftmost-longest，而不是 JavaScript/PCRE 的 ordered backtracking semantics。
+
+这一语义选择与目标课题直接相关：如果第一阶段只研究 Boolean position-path ambiguity，可以借用其上下文表示；如果要研究路径优先级，则不能把 POSIX 与 JavaScript 混用。
+
+\subsection{Location：输入边界的可执行表示}
+
+Location 定义为
+\[
+\mathsf{Loc}=\Sigma^*\times\Sigma^*.
+\]
+对 $w=uv$，边界写成 $\langle u^r,v\rangle$。左侧前缀逆序存储，向前消费从右列表取头，向后消费从左列表取头。论文原文强调：
+\begin{paperquote}{Zhuchko et al., p.~2}
+``A location is a variant of a list zipper that facilitates traversing a word forwards and backwards.''
+\end{paperquote}
+
+对目标自动机，location 可以作为 guard 求值环境：主运行消费字符位置，lookaround body 在同一 location 上检查上下文。它也适合作为 Coq 算法层表示；规范层仍可保留 $(start,length)$，并证明二者对应。
+
+\subsection{Span：把窗口和上下文放在同一数据结构中}
+
+Span 表示为
+\[
+\langle left^r,match,right\rangle.
+\]
+其优点是类型层面保证前文、匹配部分和后文来自同一个字符串。Lookahead 要求存在与当前 span 起始 location 相同的 body span；lookbehind 使用结束 location 或 span reversal。该语义清楚表达了 zero-width：lookaround 的主 span 满足 $|match|=0$，但 body 可以在上下文中消费字符。
+
+\subsection{为什么语义定义为返回 Prop 的函数}
+
+Intersection、complement 和 negative lookaround 会让匹配关系出现于负位置。论文没有使用 inductive predicate，而是定义递归函数
+\[
+\mathsf{models}:\mathsf{Span}\to\mathsf{RE}\to\mathsf{Prop}.
+\]
+论文解释，若把 complement 的语义放入归纳构造器，会产生 negative occurrence；返回 \texttt{Prop} 的函数符合 positivity，但随之需要证明终止\cite[pp.~4--5]{zhuchko2024}。Star 不再用自引用展开，而写为存在有限 $n$ 使 $R^{(n)}$ 匹配。
+
+这一点为 Coq 提供选择：
+\begin{enumerate}
+  \item 采用 Chattopadhyay 的正负归纳关系；
+  \item 采用返回 \texttt{Prop} 的递归函数，并处理终止；
+  \item 采用 Barri\`ere 的完整正向树证书。
+\end{enumerate}
+
+\subsection{Reversal：统一 Lookahead 与 Lookbehind}
+
+论文定义 regex reversal，将连接顺序反转，并把 lookahead/lookbehind 成对互换。Theorem~1 证明
+\[
+sp\models R\iff sp^r\models R^r.
+\]
+这不仅是一个语义性质，也是 lookbehind 算法的基础。对带位置自动机，需要进一步证明字符位置在反转前后的重编号映射，以及正向 run 与反向 guard 计算之间的一致性。
+
+\subsection{位置相关 Nullability 与互递归导数}
+
+论文原文给出目标课题最重要的概念之一：
+\begin{paperquote}{Zhuchko et al., p.~6}
+``When lookarounds are used, the notion of nullability becomes location dependent.''
+\end{paperquote}
+
+于是 nullability 写为 $\mathsf{null}(R,x)$。Lookahead 的 nullability 需要从位置 $x$ 检查 body 是否存在匹配；这又调用 derivatives。论文中的
+\[
+\mathsf{der},\quad\mathsf{null},\quad\mathsf{existsMatch}
+\]
+互相递归，并使用
+\[
+(\mathsf{lookHeight}(R),|x.right|,|R|,phase)
+\]
+的字典序度量证明终止。形式化还让导数携带“lookaround height 不增加”的证明，以支持递归调用。
+
+\subsection{算法正确性与论文边界}
+
+论文定义可执行 derivation relation，并证明它与 span semantics 等价；随后验证固定起点最大终点和 POSIX leftmost-longest 的 \texttt{llmatch}。这些结果说明 location-based derivative 能正确决定带 lookaround 的 span 匹配，但没有保留同一 span 的所有解析来源。
+
+\begin{directlink}{对目标课题的直接启发}
+该论文提供三个直接组件：输入边界 zipper、lookbehind reversal、位置相关 nullability。它解释了为什么经典静态 $\mathsf{Nullable}/\mathsf{Follow}$ 必须扩展为依赖 guard 或 location 的结构。
+\end{directlink}
+
+\begin{coqbox}{Coq/Rocq 设计启发}
+建议把位置和方向接口单独模块化：
+\begin{lstlisting}
+Record Location (A : Type) := {
+  left_rev : list A;
+  right    : list A
+}.
+
+Inductive Direction := Forward | Backward.
+
+Definition step (d : Direction)
+  (x : Location A) : option (A * Location A) := ...
+\end{lstlisting}
+若使用 reversal，应证明 involution、窗口索引映射、标签位置重编号和 run reversal；若使用显式方向，应证明每个 step 保持同一底层字符串。
+\end{coqbox}
+
+\begin{boundarybox}{论文没有完成的连接}
+Zhuchko 等没有线性化字符原子，没有构造 Glushkov position automaton，也没有比较两条导数运行或两个解析。其“位置”是输入位置，不是正则表达式字符位置；协作论文必须始终区分 input location 与 regex position。
+\end{boundarybox}
+
+
+\section{Chattopadhyay 等：Oracle Lookaround 与自动机层的核心桥梁}
+
+\begin{paperquote}{Chattopadhyay et al., Abstract}
+``We provide an efficient and purely functional algorithm ... and verify its correctness.''
+\end{paperquote}
+
+\begin{paperquote}{Chattopadhyay et al., pp.~1--2}
+``The key idea ... can be summarized as a layered dynamic programming algorithm.''
+\end{paperquote}
+
+\subsection{论文做了什么}
+
+论文在 Coq 中形式化带正负 lookahead/lookbehind 的窗口语义，验证纯函数式匹配算法，并给出 $O(|r||w|)$ 的资源分析。作者把贡献概括为：Coq 验证的 lookaround 匹配算法、Oracle-NFA 方法的纯函数式版本，以及抽取代码的经验评估\cite[pp.~1--2]{chattopadhyay2025}。
+
+这里“linear in both”应准确理解为乘积复杂度 $O(|r||w|)$，即每个输入位置用 $O(|r|)$ 时间更新表达式状态；不是 $O(|r|+|w|)$。
+
+\subsection{窗口语义与端点约定}
+
+表达式满足关系写为
+\[
+w,(i,j]\models r.
+\]
+Coq 中采用
+\begin{lstlisting}
+match_regex r w start delta
+\end{lstlisting}
+表示 $(start,start+delta]$。这一选择避免证明中反复携带 $i\le j$。四类 lookaround 都要求主窗口长度为零。
+
+论文与 PCRE 的 lookahead 语义存在重要差异：论文的 positive lookahead 要求 body 匹配当前位置到字符串末尾；常见 PCRE 的 \texttt{(?=r)} 对应其 body 后附加 $\Sigma^*$ 的形式\cite[p.~3]{chattopadhyay2025}。协作版若直接复用论文代码，必须在论文问题定义中保留该约定，或单独证明向 prefix-existence 语义的转换。
+
+\subsection{正负语义互递归与 Strict Positivity}
+
+论文定义
+\begin{lstlisting}
+match_regex     r w start delta
+not_match_regex r w start delta
+\end{lstlisting}
+而不是把后者写为前者的逻辑否定。论文原文解释：
+\begin{paperquote}{Chattopadhyay et al., p.~2}
+``The encoding of negation as an argument of a constructor would violate strict positivity.''
+\end{paperquote}
+随后证明
+\begin{lstlisting}
+Lemma match_not_match : forall r w start delta,
+  ~ match_regex r w start delta
+  <-> not_match_regex r w start delta.
+\end{lstlisting}
+这套正、负证书对 negative lookaround 非常有用，也为后续 guard validity 提供可归纳对象。
+
+\subsection{等价、包含与 Proper Morphisms}
+
+论文定义窗口级等价：对所有 $w,start,delta$，两个表达式的 \texttt{match\_regex} 等价。并证明等价是 congruence、包含是偏序、并与连接对包含单调；在 Coq 中用 \texttt{Proper} 声明，使标准 \texttt{rewrite} 可以在表达式内部使用这些等式\cite[p.~3]{chattopadhyay2025}。
+
+对目标课题，这一等价只保持 Boolean acceptance。若未来需要重写同时保持歧义，必须另外定义 trace-equivalence 或 run-multiplicity equivalence；不能默认 Boolean congruence 保持路径数。
+
+\subsection{O-string：每个字符边界都有 Oracle Valuation}
+
+论文定义
+\[
+\langle w,\beta\rangle,
+\qquad |\beta|=|w|+1.
+\]
+直观排列为
+\[
+\beta_0\;a_0\;\beta_1\;a_1\cdots a_{n-1}\;\beta_n.
+\]
+在 Coq 中，作者使用普通列表加良构性谓词，而不是 dependent type：
+\begin{lstlisting}
+Definition valuation : Type := list bool.
+Definition ostring : Type := (list A) * (list valuation).
+Definition ostring_wf (s : ostring) : Prop := ...
+\end{lstlisting}
+这使切片和算法执行较简单，但所有定理需显式携带长度一致性。O-string concatenation 只在公共边界 valuation 相等时定义，说明 query 发生在真正的连接边界，而不是字符上的附属标签。
+
+\subsection{Oracle Regular Expressions 与 Query}
+
+Oracle Regex 在普通正则语法上增加
+\[
+Q^+(v),\qquad Q^-(v),
+\]
+它们消费空串，只检查当前 valuation。论文原文说明：
+\begin{paperquote}{Chattopadhyay et al., p.~3}
+``The idea is to replace lookaround expressions with these oracle queries.''
+\end{paperquote}
+
+这一结构是 guarded position automaton 最直接的文献基础。字符位置负责消费输入，query 负责约束字符之间的边界。特别是连续 query 可在同一边界上检查多个条件，因此 guard 不应被误建模为额外字符状态。
+
+\subsection{Maximal Lookaround、Abstract 与 Oval}
+
+论文按 lookaround 嵌套层次进行动态规划。$\abstractfn(r)$ 把当前层 maximal lookaround 替换为 query，$\ovalfn(r,w)$ 在每个边界记录这些 lookaround 的真假。核心 Coq 引理为：
+\begin{lstlisting}
+Lemma oracle_compose_aux ... :
+  is_oval_aux r w s vs ->
+  forall start delta,
+  start + delta <= length w ->
+  match_regex r w start delta
+  <-> match_oregex (abstractAux s r)
+       (ofirstn delta (oskipn start (w, vs))).
+\end{lstlisting}
+该引理建立原 lookaround 窗口与真实 Oracle valuation 下的抽象表达式之间的 Boolean 等价。这是目标课题可以直接依赖的第一层桥梁。
+
+\subsection{Marked Oracle Regular Expressions}
+
+论文以 Marked Regex 模拟 Oracle NFA。Marks 放在字符类位置上，代表对应 NFA 状态是否活动。作者指出：
+\begin{paperquote}{Chattopadhyay et al., p.~6}
+``The marks placed on the character classes ... keep track of the active states of the corresponding NFA.''
+\end{paperquote}
+
+这与 position automaton 非常接近，但仍有关键差异：Boolean NFA simulation 把所有到达同一状态的来源合并。为了保持歧义，必须至少知道两条来源是否已经分歧；可以用同步积状态 $(p,q,d)$，也可以给 mark 附带来源证书。
+
+\subsection{缓存与复杂度证明}
+
+未缓存的 nullable/final 计算可能导致每个输入字符重复遍历子表达式。论文在 cached marked expressions 中保存 nullable 和 final 字段，并维持 synced invariant；smart constructors 负责保持缓存正确。由于缓存类型互递归且子项隔着构造层，作者手写 mutual induction principle。该部分对 Coq 工程的启发是：若未来为状态加入路径来源或 guard 集合，需要同时设计可维护的不变量和足够强的归纳原理。
+
+\subsection{现有定理与路径级目标的精确差距}
+
+论文已建立
+\[
+\text{lookaround window match}
+\iff
+\text{Oracle Regex match}
+\iff
+\text{functional matcher returns true}.
+\]
+目标课题需要加强为
+\[
+\text{带位置的匹配 trace}
+\longleftrightarrow
+\text{Oracle-guarded position run}.
+\]
+前者是外延的 Boolean acceptance preservation，后者要求保留多重性和路径身份。这一差距不是实现细节，而是新的语义定理。
+
+\begin{directlink}{对目标课题的直接启发}
+该论文提供窗口规格、negative assertion 的 Coq 编码、Oracle boundary tape、lookaround 分层求值和接近位置状态的 Marked Regex。五篇论文中，它与目标课题的距离最近。
+\end{directlink}
+
+\begin{coqbox}{建议直接复用与新增的边界}
+可直接复用：\texttt{LRegex}、正负窗口关系、o-string slicing、abstract/oval composition。需要新增：带位置 trace、guarded First/Last/Follow、position run、trace--run correspondence、relative/realizable ambiguity。
+\end{coqbox}
+
+\begin{boundarybox}{论文没有证明的内容}
+论文不处理 captures、backreferences 或 JavaScript priority；也没有证明 abstraction 保持解析数量、Marked Regex 保持路径数量，或任意 Oracle tape 上的 witness 可由真实输入实现。
+\end{boundarybox}
+
+
+\section{De Santo 等：JavaScript 语义为何超出普通位置歧义}
+
+\begin{paperquote}{De Santo et al., Abstract}
+``We present an executable, proven-safe, faithful, and future-proof Coq mechanization.''
+\end{paperquote}
+
+\begin{paperquote}{De Santo et al., p.~2}
+``Supporting capture groups ... introduces ambiguity in the matching problem.''
+\end{paperquote}
+
+\subsection{论文做了什么}
+
+论文把 ECMA-262 正则规范逐行浅嵌入 Coq，覆盖 validation、compilation 和 execution，支持 capture groups、backreferences、lookaround、anchors、greedy/lazy quantifiers 等工业特性。其目标不是给出最简洁的数学语义，而是成为可审计、可执行、可更新的规范基准\cite[pp.~1--3]{desanto2024}。
+
+论文强调需要：
+\begin{paperquote}{De Santo et al., p.~2}
+``a faithful and auditable mechanized transcription of the ECMAScript pseudocode, without simplifications.''
+\end{paperquote}
+这意味着很多对传统正则成立的代数化简不能未经证明应用于 JavaScript。
+
+\subsection{从 Recognition 到 Segmentation}
+
+传统语言语义只返回是否匹配。捕获组要求返回完整匹配区间和每个组的子区间，因此匹配变成 segmentation。若存在多种匹配方式，JavaScript 必须按 left branch、greedy/lazy 等优先级选择结果。于是“路径不同”可能反映为捕获值不同，而不仅是消费字符位置不同。
+
+这为目标课题划定边界：第一阶段若只研究无捕获 Boolean lookaround，应明确不能声称得到完整 JavaScript ambiguity；后续扩展需要把 group map 和 ordered choice 加入运行身份。
+
+\subsection{Continuation-Passing Matcher 与隐式回溯栈}
+
+ECMAScript 规范编译 AST 为高阶 matcher：
+\[
+\mathsf{Matcher}=\mathsf{MatchState}\to
+\mathsf{MatcherContinuation}\to\mathsf{MatchResult}.
+\]
+MatchState 包含输入、endIndex 和 captures。连接通过 continuation 表达，alternation/quantifier 的调用栈形成隐式回溯栈。论文原文写道：
+\begin{paperquote}{De Santo et al., p.~7}
+``Their call stack acts as an implicit backtracking stack.''
+\end{paperquote}
+
+因此 JavaScript 中子表达式的局部成功不能脱离 continuation 判断：局部路径成功后，后续失败可能迫使引擎回到较低优先级路径。这解释了为什么仅比较子表达式 top match 不足以证明上下文替换。
+
+\subsection{Shallow Embedding、Error Monad 与 AST Zipper}
+
+论文尽量保持每行 Coq 定义与 ECMAScript 伪代码对应。规范中可能失败的断言、数组访问和异常通过 error monad 表示，再证明 well-formed regex 上不会到达失败分支。对需要访问父节点、兄弟节点或前序组编号的非局部 AST 操作，论文使用 AST zipper。这里的 zipper 是\textbf{语法树上下文}，与 Zhuchko 的输入 zipper 不同。
+
+\subsection{Matcher Invariant 与方向进展}
+
+论文发现一个统一不变量：matcher 要么 mismatch，要么调用 continuation 于状态 $y$；$y$ 与初始状态使用同一输入，并沿当前方向取得非负进展。Lookbehind 反向读取，因此机械化中的进展关系被方向参数化\cite[pp.~7--8,17]{desanto2024}。
+
+对带 lookbehind 的位置运行，该不变量提醒我们：不能默认所有内部运行索引单调增加。主 position path 可以保持正向消费，而 lookbehind guard 的内部检查需单独携带方向或通过 reversal 解释。
+
+\subsection{Fuel 与终止证明}
+
+RepeatMatcher 不是结构递归。论文加入自然数 fuel，使函数被 Coq 接受，再证明一个由表达式和输入大小计算的充分上界。论文原文说明：
+\begin{paperquote}{De Santo et al., p.~14}
+``We opted for a fuel-based solution: we added an extra fuel argument of type nat.''
+\end{paperquote}
+随后证明充分 fuel 排除 \texttt{OutOfFuel}。该模式可用于未来完整 trace/tree 生成，但不应把“加 fuel”本身当作终止性结论；必须证明上界充分。
+
+\subsection{Lookaround 的工业语义细节}
+
+JavaScript lookaround 不只是 Boolean guard：positive lookaround 可定义捕获组，且 lookaround 在回溯行为上具有特定语义。论文给出的量词、空匹配和捕获组反例表明，经典重写如把某些 quantifier 改成 alternation 可能改变结果。这些例子说明：若协作论文把目标限定为 Boolean lookaround，应在标题、定义和实验中持续声明该限制。
+
+\begin{directlink}{对目标课题的直接启发}
+De Santo 等主要提供“扩展边界”：它告诉我们从 position-path ambiguity 走向 JavaScript ambiguity 时必须增加 group state、ordered continuation、directional progress、nullable-quantifier progress 和 lookaround capture effects。
+\end{directlink}
+
+\begin{coqbox}{Coq/Rocq 设计启发}
+可以借鉴 shallow specification 与简洁分析语义分层：保留一个可信窗口/工业规格，再构造适合自动机归纳的 guarded-run 语义，并证明二者在选定观察层面等价。非结构递归优先使用“fuel + sufficient bound”或良基递归，而不是留下未证明的超时分支。
+\end{coqbox}
+
+\begin{boundarybox}{论文不是位置自动机歧义分析}
+Warblre 证明的是 ECMAScript 规范机械化的终止、安全和忠实性。它没有构造 position automaton，没有计算解析数量，也没有给出 lookaround 歧义静态判定器。
+\end{boundarybox}
+
+
+\section{Barri\`ere 等：所有有序路径作为 Rocq 语义对象}
+
+\begin{paperquote}{Barri\`ere et al., Abstract}
+``a full backtracking tree recording all possible matches and their respective priority''
+\end{paperquote}
+
+\begin{paperquote}{Barri\`ere et al., p.~2}
+``we formalize ... all possible matches, ordered by priority.''
+\end{paperquote}
+
+\subsection{论文做了什么}
+
+论文提出一个简洁的 JavaScript regex tree semantics，并在 Rocq 中证明它与 Warblre 等价。语义完整支持 ECMAScript 正则特性，核心规则只有一页左右；应用包括 directional contextual equivalence 和 PikeVM 的首次形式验证\cite[pp.~1--3]{barriere2026}。
+
+关键思想是：为了刻画 backtracking semantics，不模拟一个找到首个成功就停止的程序，而是生成完整有序树。树是唯一的，但树中可以有多条成功分支；这正好区分“语义函数确定”与“匹配路径不唯一”。
+
+\subsection{Backtracking Tree 的节点与路径信息}
+
+树包含 \texttt{Match}、\texttt{Mismatch}、\texttt{Choice}、\texttt{Read}、捕获组操作、progress、anchor 和 lookaround 节点。\texttt{Choice} 的左右顺序记录优先级，最终 JavaScript 结果是最左接受叶。
+
+论文原文强调：
+\begin{paperquote}{Barri\`ere et al., p.~6}
+``our semantics also formalizes all possible matches of a regex on an input, not just the top-priority one.''
+\end{paperquote}
+这为 ambiguity 提供比 Boolean matcher 更丰富的语义对象：不仅知道存在匹配，还能数、比较或筛选成功分支。
+
+\subsection{Lookaround 物化为内部完整树}
+
+节点 \texttt{LK} 和 \texttt{LKMismatch} 保存 lookaround body 的完整树 $t_{look}$。Positive lookaround 检查其中第一条接受分支并可能更新 captures；negative lookaround 检查不存在接受分支。论文指出，物化完整 lookaround tree 可以避免其他工作为非严格正性设计的变通\cite[pp.~5--8]{barriere2026}。
+
+这与 Chattopadhyay 的 Oracle Boolean abstraction 构成两种不同粒度：
+\begin{itemize}
+  \item Oracle query 适合第一阶段，只关心断言真假；
+  \item 完整 lookaround tree 适合研究断言内部歧义、捕获和 priority。
+\end{itemize}
+
+\subsection{方向、Actions 与 Sequence}
+
+语义判断为
+\[
+(l,i,gm,d)\Downarrow t,
+\]
+其中 $l$ 是 actions 列表，$i$ 是输入 zipper，$gm$ 是捕获组映射，$d$ 是方向。Forward sequence 与 backward sequence 把子表达式以不同顺序压入 actions。论文特别指出，带 lookahead 的序列不能简单地把输入切成不重叠两段，因为 lookahead 可查看后续由第二个子表达式消费的同一部分\cite[p.~8]{barriere2026}。
+
+这一点对 position automaton 很重要：主字符消费仍可按窗口推进，但 guard 的内部检查不能被解释为额外的不重叠子串。
+
+\subsection{确定性、生产性与 Fuel}
+
+Theorem~1 证明给定语义状态生成的树唯一。为了证明树总存在，作者定义 fuel 函数 $T$，再给出足够 fuel 的上界。终止依赖 JavaScript progress check：非强制量词迭代必须消费字符；lookaround 可切换方向，因此 fuel 界还需考虑双向位置\cite[p.~9]{barriere2026}。
+
+\subsection{Directional Contextual Equivalence}
+
+论文发现有些重写只在特定方向成立，因而定义 forward、backward 和 bidirectional contexts。等价不只比较第一叶，而比较保序 leaves 列表（去除低优先级重复）。其原因是外层 continuation 可能在首选路径失败后使用子表达式的次优路径。
+
+对目标课题，这说明若未来研究 priority-sensitive ambiguity，运行身份需保留顺序；普通无序 NFA 路径集合不足以表达 JavaScript 上下文行为。
+
+\subsection{PikeVM 证明与范围}
+
+论文以 PikeTree 作为中间层，连接 PikeVM thread execution 与完整树第一接受叶，再经 tree semantics--Warblre 等价连接 ECMAScript。该证明展示了“算法语义--分析友好中间模型--工业规范”的多层验证方法。
+
+但必须准确表述范围：完整 tree semantics 支持 lookaround，当前 PikeVM correctness theorem 的子语言不包含 lookaround 和 backreference。论文并未验证支持 lookaround 的 PikeVM。
+
+\begin{directlink}{对目标课题的直接启发}
+Barri\`ere 等说明“所有路径”可以成为严格正、可归纳、可执行并与真实规范连接的 Rocq 对象。它提供路径语义的上界版本：第一阶段可以投影为消费位置序列；后续扩展可逐步加入 priority、capture 和 lookaround 内部树。
+\end{directlink}
+
+\begin{coqbox}{建议的分层设计}
+可定义投影
+\[
+\mathsf{positions}:\mathsf{TreeBranch}\to\mathsf{list}\;\mathsf{position},
+\]
+并先证明树接受分支投影为 guarded position run。若两个分支投影相同，则决定它们是否应视为相同 position-path 或保留 branch tags。这比直接把完整 JavaScript 树塞入第一阶段自动机更易控制范围。
+\end{coqbox}
+
+\begin{boundarybox}{论文没有直接给出的结论}
+树语义保存所有路径，但不是 Glushkov position automaton，也未研究 Oracle valuation realizability。其 contextual equivalence 还会去除低优先级重复叶，因此不能直接等同于“解析路径数量完全相等”。
+\end{boundarybox}
+
+\section{补充文献：位置解析、歧义与 Coq 自动机基础}
+
+下列工作不是五篇核心论文，但能直接补足位置路径、解析树和 ReDoS 方向。
+
+\begin{longtable}{p{3.3cm}p{5.3cm}p{5.8cm}}
+\toprule
+文献 & 论文做了什么 & 对本课题的作用 \\
+\midrule
+\endfirsthead
+\toprule
+文献 & 论文做了什么 & 对本课题的作用 \\
+\midrule
+\endhead
+Okui--Suzuki \cite{okui2011} & 使用 augmented position automata 实现 POSIX leftmost-longest 匹配，并讨论基于 parse trees 的形式化 & 最直接的普通正则“parse tree--position path”参考；缺少 lookaround 和机械验证 \\
+Borsotti et al. \cite{borsotti2021} & 基于 Berry--Sethi/位置自动机为歧义正则生成解析结构 & 说明位置自动机可以扩展为解析器，但 guard 与 lookaround 仍为空白 \\
+Sulzmann--Lu \cite{sulzmann2017} & 使用导数诊断正则歧义并生成反例 & 支持“判定器应输出可解释 witness”的设计目标 \\
+Mamouras et al. \cite{mamouras2024static} & 静态分析正则消歧策略的鲁棒性 & 将 ambiguity 与 disambiguation behavior 联系起来，可作为后续 priority 扩展 \\
+Weideman et al. \cite{weideman2016} & 用 NFA ambiguity 分析回溯匹配的渐近时间 & 解释位置路径数量为何与 ReDoS 有关，但未处理 lookaround guard 的真实可实现性 \\
+Doczkal--Smolka \cite{doczkal2018} & 在 Coq 中构造性形式化多种自动机、正则表达式及其转换 & 可作为有限自动机、可判定性和转换证明的基础库参考；不保存路径来源 \\
+Almeida et al. \cite{almeida2011} & 在 Coq 中形式化 partial derivative automata & 提供自动机构造 soundness/completeness 的 Coq 工程参考；不含 lookaround 与歧义 \\
+\bottomrule
+\caption{补充文献与可复用部分}
+\end{longtable}
+
+\section{现有工作的核心痛点与拟解决问题}
+
+\subsection{痛点一：Lookaround 形式化只保持匹配真假}
+
+Chattopadhyay 的 abstraction theorem 只保证在真实 valuation 下，原表达式与 Oracle Regex 对同一窗口给出相同 Boolean 结果。若两个分支都能匹配，结果仍然只是 true。目标研究需要显式 trace，才能陈述路径多重性。
+
+\subsection{痛点二：经典位置自动机没有输入边界条件}
+
+普通 $\mathsf{First}$、$\mathsf{Last}$ 和 $\mathsf{Follow}$ 是静态集合；lookaround 条件依赖当前输入边界。因此必须定义 guarded initial/final/follow relation，并明确 guard 在消费前还是消费后求值。
+
+\subsection{痛点三：位置序列未必等于完整解析树}
+
+不同 star 分解、空串推导或 lookaround 内部解析可能映射到同一消费位置序列。协作中必须选择：研究较粗的 position-path ambiguity，或给运行增加 branch/iteration tags 以逼近完整 parse ambiguity。
+
+\subsection{痛点四：任意 Oracle tape 会产生假阳性}
+
+抽象自动机可在任意良构 Boolean tape 上运行，但真实 lookaround valuation 必须满足
+\[
+\beta=\ovalfn(r,w).
+\]
+因此必须区分相对 Oracle 歧义与真实可实现歧义。
+
+\subsection{痛点五：两条路径不等于指数 ReDoS}
+
+存在两条路径只证明非唯一性。ReDoS 还需要研究路径数量随输入长度的增长。可靠的增长分析必须先排除不可实现 guard 路径。
+
+\section{建议的第一阶段研究边界}
+
+\begin{itemize}
+  \item 语法包含空串、字符谓词、并、连接、star 和四类 lookaround；
+  \item 不含 captures、backreferences、bounded repetition 和 greedy/lazy priority；
+  \item 采用 Chattopadhyay 风格的窗口 Boolean semantics；
+  \item 消费字符原子具有唯一位置编号；
+  \item maximal lookaround 抽象为边界 Oracle query；
+  \item 歧义定义为同一真实输入和窗口上的两条不同消费位置序列；
+  \item lookaround body 内部歧义暂不计入外层位置路径身份。
+\end{itemize}
+
+该边界统一了
+\[
+\boxed{
+\text{Boolean lookaround}
++
+\text{position identity}
++
+\text{path multiplicity}
+}
+\]
+而不承担完整 JavaScript 状态。
+
+\section{核心定理链}
+
+\subsection{定理一：Oracle 位置运行正确性}
+
+设 $R=\abstractfn(r)$，$\beta=\ovalfn(r,w)$。首先在 Oracle 层证明：
+\begin{theorem}[Oracle 位置自动机正确性]
+\[
+\exists \rho.\;
+\Run(\PA(R),\langle w,\beta\rangle,i,j,\rho)
+\iff
+\langle w,\beta\rangle_{(i,j]}\in\mathcal L(R).
+\]
+\end{theorem}
+
+再与已有 Oracle composition lemma 组合：
+\[
+\exists \rho.\;
+\Run(\PA(\abstractfn(r)),
+     \langle w,\ovalfn(r,w)\rangle,i,j,\rho)
+\iff
+w,(i,j]\models r.
+\]
+
+该定理解决“新自动机是否真的实现原始 lookaround 语义”的问题。
+
+\subsection{定理二：路径来源保持}
+
+不能比较 Prop 证明项，应定义显式 trace：
+
+\begin{lstlisting}[caption={建议的显式匹配证书}]
+Inductive Trace :=
+| TrEps
+| TrAtom   (p : position)
+| TrLeft   (t : Trace)
+| TrRight  (t : Trace)
+| TrConcat (t1 t2 : Trace)
+| TrStar   (ts : list Trace)
+| TrAssert (id : assertion_id).
+\end{lstlisting}
+
+定义 $\mathsf{positions}:\Trace\to\mathsf{list}\;\mathsf{position}$，并先确定哪些空串结构差异应通过等价关系 $\approx_\varepsilon$ 商去。需要证明：
+\[
+\text{规范化 trace}
+\Longrightarrow
+\text{对应 position run},
+\]
+以及
+\[
+\text{position run}
+\Longrightarrow
+\exists\text{ 对应 trace}.
+\]
+
+若希望把 parse ambiguity 等同于 position ambiguity，还需证明适当单射；若单射不成立，则应明确论文只研究 position-path ambiguity，或扩展运行证书。
+
+\subsection{定理三：Oracle 可实现性分层}
+
+定义相对 Oracle 歧义：
+\[
+\begin{aligned}
+\RelAmb(r)\iff
+\exists w,\beta,i,j,\rho_1,\rho_2.\;&
+\WF(w,\beta)\land\rho_1\neq\rho_2\\
+&\land\Run(\PA(\abstractfn(r)),\langle w,\beta\rangle,i,j,\rho_1)\\
+&\land\Run(\PA(\abstractfn(r)),\langle w,\beta\rangle,i,j,\rho_2).
+\end{aligned}
+\]
+
+定义真实可实现歧义：
+\[
+\begin{aligned}
+\RealAmb(r)\iff
+\exists w,i,j,\rho_1,\rho_2.\;&
+\rho_1\neq\rho_2\\
+&\land\Run(\PA(\abstractfn(r)),\langle w,\ovalfn(r,w)\rangle,i,j,\rho_1)\\
+&\land\Run(\PA(\abstractfn(r)),\langle w,\ovalfn(r,w)\rangle,i,j,\rho_2).
+\end{aligned}
+\]
+
+优先证明：
+\[
+\RealAmb(r)\Rightarrow\RelAmb(r),
+\]
+等价地：
+\[
+\neg\RelAmb(r)\Rightarrow\neg\RealAmb(r).
+\]
+
+这使任意 Oracle 模型成为一个不会漏报真实歧义的过近似。相对模型返回的 witness 还需通过重新计算 $\ovalfn(r,w)$ 或约束求解进行 validation。
+
+\section{Coq/Rocq 协作模块划分}
+
+\begin{longtable}{p{2.3cm}p{3.8cm}p{3.7cm}p{2.7cm}}
+\toprule
+模块 & 主要定义 & 主要定理 & 可独立交付物 \\
+\midrule
+\endfirsthead
+\toprule
+模块 & 主要定义 & 主要定理 & 可独立交付物 \\
+\midrule
+\endhead
+Syntax & 带位置 LRegex、Oracle variables、线性化 & 位置唯一性、erase/linearize 关系 & \texttt{Syntax.v}, \texttt{Linearize.v} \\
+\shortstack[l]{Window\\Semantics} & 正负窗口语义 & 正负互补、可判定性、等价 congruence & \texttt{Semantics.v} \\
+Oracle & o-string、valuation、abstract、oval & abstraction composition、slice 良构性 & \texttt{Oracle.v} \\
+Trace & 显式 trace、positions、规范化 & trace soundness、规范化保持 & \texttt{Trace.v} \\
+\shortstack[l]{Position\\Automaton} & guarded First/Last/Follow、run & 语言 soundness/completeness & \shortstack[l]{\texttt{Position}\\\texttt{Automaton.v}} \\
+\shortstack[l]{Correspon-\\dence} & trace 到 run 的映射 & 来源保持、必要的单射或反例 & \shortstack[l]{\texttt{Correspon-}\\\texttt{dence.v}} \\
+Ambiguity & RelAmb、RealAmb、witness & RealAmb $\Rightarrow$ RelAmb、validation soundness & \texttt{Ambiguity.v} \\
+Decision & product/search、证书 & 判定器 soundness/completeness & \texttt{Decision.v} \\
+\bottomrule
+\caption{建议的 Coq/Rocq 协作模块}
+\end{longtable}
+
+\section{协作中需要尽早固定的决策}
+
+\begin{enumerate}
+  \item \textbf{歧义身份：}只比较消费位置序列，还是加入 alternation/star tags？
+  \item \textbf{Lookaround 内部路径：}第一阶段只保留 Boolean，还是保留内部 trace？
+  \item \textbf{Lookaround 语义：}严格采用 Chattopadhyay 的端点语义，还是改为常见 prefix-existence 语义？
+  \item \textbf{方向实现：}显式 direction、zipper，还是统一用 reversal？
+  \item \textbf{负断言编码：}正负关系互递归，还是完整 proof/tree certificate？
+  \item \textbf{判定范围：}先做给定输入的 ambiguity checker，还是直接做存在性静态分析？
+\end{enumerate}
+
+建议论文第一版优先完成“给定输入和窗口的经过验证的路径多重性判断”，再扩展到存在性搜索。前者能先验证语义对应和 witness 设计，降低静态可实现性搜索的风险。
+
+\section{可用于论文摘要或引言的研究空白表述}
+
+现有工作已经分别验证了带 lookaround 的窗口匹配、基于位置的双向导数、完整 JavaScript 回溯语义以及 Coq 中的自动机判定过程。然而，这些工作主要建立语言接受或最高优先级结果的正确性，尚未把正则表达式的字符位置身份、lookaround 的边界条件与歧义所依赖的路径多重性统一到同一机械化模型中。特别是，现有 Oracle abstraction 保证真实 valuation 下的 Boolean 匹配等价，却未证明不同解析来源对应不同 Oracle-guarded position runs，也未研究任意 Oracle tape 上发现的路径歧义能否由同一真实输入实现。因此，解析来源保持与 Oracle valuation realizability 构成带 lookaround 位置自动机歧义分析的两个核心缺口。
+
+\section{结论}
+
+五篇核心论文形成一条清晰的依赖链：Braibant--Pous 提供可信判定器的 Coq 架构；Zhuchko 等提供 lookaround 的位置上下文与反转；Chattopadhyay 等提供窗口语义和 Oracle automata 层；De Santo 等界定完整 JavaScript 扩展的必要状态；Barri\`ere 等证明全部有序路径可以在 Rocq 中成为可归纳并可连接工业规范的对象。
+
+目标研究真正需要补上的不是“如何匹配 lookaround”，而是：
+\[
+\boxed{
+\text{带位置的解析来源}
+\quad\Longleftrightarrow\quad
+\text{真实 lookaround valuation 下的位置运行}
+}
+\]
+以及任意 Oracle 过近似与真实可实现歧义之间的关系。这两点应成为后续论文与 Coq 开发的主线。
+
+\begin{thebibliography}{99}
+
+\bibitem{braibant2012}
+Thomas Braibant and Damien Pous.
+\newblock Deciding Kleene Algebras in Coq.
+\newblock \emph{Logical Methods in Computer Science}, 8(1), 2012.
+
+\bibitem{zhuchko2024}
+Ekaterina Zhuchko, Margus Veanes, and Gabriel Ebner.
+\newblock Lean Formalization of Extended Regular Expression Matching with Lookarounds.
+\newblock In \emph{CPP}, 2024.
+\newblock DOI: 10.1145/3636501.3636959.
+
+\bibitem{chattopadhyay2025}
+Agnishom Chattopadhyay, Angela W. Li, and Konstantinos Mamouras.
+\newblock Verified and Efficient Matching of Regular Expressions with Lookaround.
+\newblock In \emph{CPP}, 2025.
+\newblock DOI: 10.1145/3703595.3705884.
+
+\bibitem{desanto2024}
+No\'e De Santo, Aur\`ele Barri\`ere, and Cl\'ement Pit-Claudel.
+\newblock A Coq Mechanization of JavaScript Regular Expression Semantics.
+\newblock \emph{Proceedings of the ACM on Programming Languages}, 8(ICFP), Article 270, 2024.
+\newblock DOI: 10.1145/3674666.
+
+\bibitem{barriere2026}
+Aur\`ele Barri\`ere, Victor Deng, and Cl\'ement Pit-Claudel.
+\newblock Formal Verification for JavaScript Regular Expressions: A Proven Mechanized Semantics and Its Applications.
+\newblock \emph{Proceedings of the ACM on Programming Languages}, 10(POPL), Article 68, 2026.
+\newblock DOI: 10.1145/3776710.
+
+\bibitem{okui2011}
+Satoshi Okui and Taro Suzuki.
+\newblock Disambiguation in Regular Expression Matching via Position Automata with Augmented Transitions.
+\newblock In \emph{CIAA}, LNCS 6482, pp. 231--240, 2011.
+\newblock DOI: 10.1007/978-3-642-18098-9\_25.
+
+\bibitem{borsotti2021}
+Angelo Borsotti, Luca Breveglieri, Stefano Crespi Reghizzi, and Angelo Morzenti.
+\newblock A Deterministic Parsing Algorithm for Ambiguous Regular Expressions.
+\newblock \emph{Acta Informatica}, 58:195--229, 2021.
+\newblock DOI: 10.1007/s00236-020-00366-7.
+
+\bibitem{sulzmann2017}
+Martin Sulzmann and Kenny Zhuo Ming Lu.
+\newblock Derivative-Based Diagnosis of Regular Expression Ambiguity.
+\newblock \emph{International Journal of Foundations of Computer Science}, 28(5):543--561, 2017.
+\newblock DOI: 10.1142/S0129054117400068.
+
+\bibitem{mamouras2024static}
+Konstantinos Mamouras, K. Le Glaunec, A. Li, and A. Chattopadhyay.
+\newblock Static Analysis for Checking the Disambiguation Robustness of Regular Expressions.
+\newblock \emph{Proceedings of the ACM on Programming Languages}, 8(PLDI), 2024.
+\newblock DOI: 10.1145/3656461.
+
+\bibitem{weideman2016}
+Nicolaas Weideman, Brink van der Merwe, Martin Berglund, and Bruce Watson.
+\newblock Analyzing Matching Time Behavior of Backtracking Regular Expression Matchers by Using Ambiguity of NFA.
+\newblock In \emph{CIAA}, LNCS 9705, pp. 322--334, 2016.
+\newblock DOI: 10.1007/978-3-319-40946-7\_27.
+
+\bibitem{doczkal2018}
+Christian Doczkal and Gert Smolka.
+\newblock Regular Language Representations in the Constructive Type Theory of Coq.
+\newblock \emph{Journal of Automated Reasoning}, 61:521--553, 2018.
+\newblock DOI: 10.1007/s10817-018-9460-x.
+
+\bibitem{almeida2011}
+Jos\'e Bacelar Almeida, Nelma Moreira, David Pereira, and Sim\~ao Melo de Sousa.
+\newblock Partial Derivative Automata Formalized in Coq.
+\newblock In \emph{CIAA}, LNCS 6482, pp. 59--68, 2011.
+\newblock DOI: 10.1007/978-3-642-18098-9\_7.
+
+\end{thebibliography}
+
+\end{document}

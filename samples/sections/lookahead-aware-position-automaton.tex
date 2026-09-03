@@ -1,0 +1,360 @@
+\section{Derivatives of Regular Expressions with Positive Lookahead}
+\label{sec:derivatives-positive-lookahead}
+% ============================================================
+
+This section extends the Brzozowski derivative construction recalled in Section~\ref{sec:derivatives-of-regular-expressions} to $\mathrm{REwPLA}$. We first define the left quotient of string pairs and of languages with string pair introduced in Section~\ref{sec:languages-with-prefix-contexts}. We then define derivatives for $\mathrm{REwPLA}$ and prove that, for every expression in $\mathrm{REwPLA}$, the language denoted by its derivative coincides with the left quotient of its language.
+% Since positive lookahead is
+% interpreted using languages of string pairs rather than ordinary
+% languages, the residual objects of the derivative operation are elements
+% of $\mathcal C_\Sigma=\mathcal P(\Sigma^*\times\Sigma^*)$.
+
+% A string pair $(u,v)$ records the two components introduced in
+% Section~\ref{sec:languages-with-prefix-contexts}: the first component
+% $u$ is the remaining main string, while the second component $v$ is the
+% remaining right-context string. The derivative operation consumes the
+% first component first. Only after the main component has been exhausted
+% does it consume the second component.
+
+
+% Their semantic
+% counterparts on string pairs and on languages of string pairs are denoted
+% by $\partial_a^{\mathsf P}$ and $\partial_w^{\mathsf P}$.
+
+% ------------------------------------------------------------
+\subsection{Left Quotient of String Pairs and Languages of String Pairs}
+\label{sec:stringpair-derivatives}
+% ------------------------------------------------------------
+
+For a symbol $a\in\Sigma$, we define the left quotient of a string pair by
+% $\partial_a^{\mathsf P}:\Sigma^*\times\Sigma^*\to\mathcal C_\Sigma$ by
+\begin{equation}
+a^{-1}(u,v)
+=
+\begin{cases}
+\{(a^{-1}u,v)\},
+& \quad\text{if }a\preceq u,\\
+\{(\varepsilon,a^{-1}v)\},
+& \quad \text{if }u=\varepsilon
+  \text{ and }a\preceq v,\\
+\emptyset,
+& \quad \text{otherwise}.
+\end{cases}
+\label{eq:stringpair-symbol-derivative}
+\end{equation}
+Here, $a^{-1}u$ and $a^{-1}v$ denote the left quotients of strings by symbol $a$, as defined in
+Section~\ref{sec:derivatives-of-regular-expressions}. The left quotient of a string pair by a string is defined inductively by
+$
+\varepsilon^{-1}(u,v)=\{(u,v)\},
+\:\:\:
+(aw)^{-1}(u,v)
+=
+\bigcup_{\xi\in a^{-1}(u,v)}
+w^{-1}(\xi).
+\label{eq:stringpair-string-derivative}
+$
+In particular, for identity $\mathbf{1}$, 
+$
+a^{-1}(\varepsilon,\varepsilon) = \emptyset .
+\label{eq:stringpair-fully-discharged}
+$ For example,
+\begin{equation}
+\begin{aligned}
+a^{-1}(ab,cd)
+&=\{(b,cd)\}, \quad
+&
+ab^{-1}(ab,cd)
+&=\{(\varepsilon,cd)\},
+\\
+abc^{-1}(ab,cd)
+&=\{(\varepsilon,d)\}, \quad
+&
+abcd^{-1}(ab,cd)
+&=\{(\varepsilon,\varepsilon)\}.
+\end{aligned}
+\label{eq:stringpair-derivative-example}
+\end{equation}
+% Thus, reading $ab$ exhausts the main component, while reading $cd$
+% subsequently discharges the right-context component. The derivative
+% operation does not project a string pair to an ordinary string.
+
+% ------------------------------------------------------------
+% \subsection{Derivatives of Languages of String Pairs}
+% \label{sec:stringpair-language-derivatives}
+% ------------------------------------------------------------
+
+The left quotient is lifted pointwise from string pairs to
+languages of string pairs. For $R\in\mathcal C_\Sigma$ and
+$a\in\Sigma$, define
+$
+a^{-1}R
+=
+\bigcup_{\xi\in R}
+a^{-1}(\xi).$
+\label{eq:stringpair-language-symbol-derivative}
+The left quotient of a language of string pair by a string is defined inductively by $
+\varepsilon^{-1}R=R,
+\:
+(aw)^{-1}R
+=
+w^{-1}
+\bigl(a^{-1}R\bigr).
+\label{eq:stringpair-language-word-derivative}
+$
+Equivalently,
+$
+w^{-1}R
+=
+\bigcup_{\xi\in R}
+w^{-1}(\xi).
+\label{eq:stringpair-language-word-derivative-pointwise}
+$ Clearly, $w^{-1}R\in\mathcal{C}_{\Sigma}$.
+
+\subsection{Derivatives of \textbf{$\mathrm{REwPLA}$}}
+We define a derivative operation on $\mathrm{REwPLA}$ that maps an expression to another expression in $\mathrm{REwPLA}$. Following the Brzozowski notation introduced in Section~\ref{sec:derivatives-of-regular-expressions}, we write $D_a(r)$ and $D_w(r)$ for the derivatives of an expression $r\in\mathrm{REwPLA}$ with respect to a symbol $a\in\Sigma$ and a string $w\in\Sigma^*$, respectively. 
+
+To facilitate the definition of derivatives for $\mathrm{REwPLA}$, we introduce two Boolean functions. $r \in \mathrm{REwPLA},$ function $\lambda_1$ indicates whether $\mathcal{M}(r)$ contains a pair whose first component is empty string (i.e., $\varepsilon$), while $\lambda$ indicates whether the identity pair belongs to $\mathcal{M}(r)$. Formally,
+$
+\lambda_1(r)=\mathsf{T}
+\:\Longleftrightarrow\:
+\exists \xi\in\mathcal{M}(r),\ \pi_1(\xi)=\varepsilon,
+$
+and
+$
+\lambda(r)=\mathsf{T}
+\:\Longleftrightarrow\:
+(\varepsilon,\varepsilon)\in\mathcal{M}(r),
+$
+with both functions returning $\mathsf{F}$ otherwise.
+
+
+We introduce an auxiliary derivative $D'_a(r)$, called the \emph{virtual derivative}, which captures derivations that consume the symbol $a$ through a string constraint associated with an empty main-string component. Thus, $D'_a(r)$ is relevant only when $\lambda_1(r)=\mathsf{T}$. For $a,b\in\Sigma$, the virtual derivative is defined inductively as follows:
+\begin{equation}
+\begin{aligned}
+D'_a(\emptyset)
+&=\emptyset,
+&
+D'_a(\varepsilon)
+&=\emptyset,
+\\
+D'_a(r+s)
+&=
+\begin{cases}
+D'_a(r)+D'_a(s),
+& \lambda_1(r)=\mathsf{T}\land\lambda_1(s)=\mathsf{T},\\
+D'_a(r),
+& \lambda_1(r)=\mathsf{T}\land\lambda_1(s)=\mathsf{F},\\
+D'_a(s),
+& \lambda_1(r)=\mathsf{F}\land\lambda_1(s)=\mathsf{T},\\
+\emptyset,
+& \text{otherwise},
+\end{cases}
+&
+D'_a(b)
+&=\emptyset,
+\\
+D'_a(rs)
+&=
+\begin{cases}
+\emptyset,
+& \lambda_1(r)=\mathsf{F}\lor\lambda_1(s)=\mathsf{F},
+\\
+D'_a(r)D'_a(s),
+& \lambda(r)=\mathsf{F}\land\lambda(s)=\mathsf{F},
+\\
+D'_a(r)D'_a(s)+D'_a(s),
+& \lambda(r)=\mathsf{T}\land\lambda(s)=\mathsf{F},
+\\
+D'_a(r)D'_a(s)+D'_a(r),
+& \lambda(r)=\mathsf{F}\land\lambda(s)=\mathsf{T},
+\\
+D'_a(r)D'_a(s)+D'_a(r)+D'_a(s),
+& \lambda(r)=\mathsf{T}\land\lambda(s)=\mathsf{T},
+\end{cases}
+\\
+D'_a(r^*)
+&=
+\begin{cases}
+D'_a(r)r^*,
+& \lambda_1(r)=\mathsf{T},\\
+\emptyset,
+& \text{otherwise},
+\end{cases}
+&D'_a(\mathsf{LA}(r))
+&=
+\mathsf{LA}\bigl(D_a(r)\bigr).
+\end{aligned}
+\label{eq:rewpla-virtual-derivative}
+\end{equation}
+
+The derivative $D_a(r)$ of an expression $r\in\mathrm{REwPLA}$ with respect to a symbol $a\in\Sigma$ captures both real and virtual derivations while preserving the associated string constraints. It is defined inductively as follows:
+\begin{equation}
+\begin{aligned}
+D_a(\emptyset)
+&=\emptyset,
+&
+D_a(\varepsilon)
+&=\emptyset,
+\\[1mm]
+D_a(b)
+&=
+\begin{cases}
+\varepsilon, & \text{if } a=b,\\
+\emptyset, & \text{otherwise},
+\end{cases}
+\\[2mm]
+D_a(r+s)
+&=D_a(r)+D_a(s),
+&
+D_a(r^*)
+&=D_a(r)r^*,
+\\[1mm]
+D_a(\mathsf{LA}(r))
+&=\mathsf{LA}\bigl(D_a(r)\bigr),
+\\[2mm]
+D_a(rs)
+&=
+\begin{cases}
+D_a(r)s+D'_a(r)D_a(s),
+& \lambda_1(r)=\mathsf{T}\land\lambda(r)=\mathsf{F},
+\\[1mm]
+D_a(r)s+D'_a(r)D_a(s)+D_a(s),
+& \lambda(r)=\mathsf{T},
+\\[1mm]
+D_a(r)s,
+& \text{otherwise}.
+\end{cases}
+\end{aligned}
+\label{eq:rewpla-symbol-derivative}
+\end{equation}
+
+Here, $D'_a(r)$ denotes the virtual component of the derivative, whereas $D_a(r)$ represents the complete derivative. In particular, $D'_a(r)$ accounts for the case in which the main-string component is empty and the symbol $a$ is consumed through the associated string constraint.
+
+\begin{example}
+Consider the expression $e=(\mathsf{LA}(ab)+a)(a+b)^*,$
+and compute its derivative with respect to $a$.
+\begin{align*}
+D_a(e)
+&=D_a\bigl(\mathsf{LA}(ab)+a\bigr)(a+b)^*
+  +D'_a\bigl(\mathsf{LA}(ab)+a\bigr)
+   D_a\bigl((a+b)^*\bigr)
+\\
+&=\bigl(D_a(\mathsf{LA}(ab))+D_a(a)\bigr)(a+b)^*
+  +D'_a(\mathsf{LA}(ab))
+   D_a(a+b)(a+b)^*
+\\
+&=\bigl(\mathsf{LA}(D_a(ab))+\varepsilon\bigr)(a+b)^*
+  +\mathsf{LA}(D_a(ab))
+   \bigl(D_a(a)+D_a(b)\bigr)(a+b)^*
+\\
+&=\bigl(\mathsf{LA}(b)+\varepsilon\bigr)(a+b)^*
+  +\mathsf{LA}(b)
+   (\varepsilon+\emptyset)(a+b)^*
+\\
+&=\bigl(\mathsf{LA}(b)+\varepsilon\bigr)(a+b)^*
+  +\mathsf{LA}(b)(a+b)^*
+\\
+&=(a+b)^*+\mathsf{LA}(b)(a+b)^* .
+\end{align*}
+
+\end{example}
+
+We define the nullability function
+\[
+\lambda:\mathrm{REwPLA}\longrightarrow\{\emptyset,\varepsilon\}
+\]
+by
+\[
+\lambda(r)=
+\begin{cases}
+\varepsilon,
+& \text{if }(\varepsilon,\varepsilon)\in\mathcal{M}(r),\\
+\emptyset,
+& \text{otherwise}.
+\end{cases}
+\]
+Thus, $\lambda(r)=\varepsilon$ exactly when $r$ admits the identity
+pair, i.e., when both the main-string component and the string-constraint
+component are empty.
+
+\begin{theorem}[Closure under derivatives]
+For every expression $r\in\mathrm{REwPLA}$, every symbol
+$a\in\Sigma$, and every word $w\in\Sigma^*$,
+\[
+D_a(r)\in\mathrm{REwPLA}
+\qquad\text{and}\qquad
+D_w(r)\in\mathrm{REwPLA}.
+\]
+Moreover, the auxiliary virtual derivative $D'_a(r)$ occurring in the
+definition of $D_a(r)$ is also an expression in $\mathrm{REwPLA}$.
+\end{theorem}
+
+\begin{proof}
+We first prove simultaneously, by structural induction on $r$, that
+$D_a(r)$ and $D'_a(r)$ belong to $\mathrm{REwPLA}$.
+
+For the base expressions $\emptyset$, $\varepsilon$, and $b\in\Sigma$,
+the claim follows immediately from the definitions, since their
+derivatives are either $\emptyset$ or $\varepsilon$.
+
+For $r+s$, the derivatives are constructed from the derivatives of
+$r$ and $s$ using only union. For $rs$, every branch in the definitions
+of $D_a(rs)$ and $D'_a(rs)$ is constructed from derivatives of $r$ and
+$s$ using union and concatenation. Hence the claim follows from the
+induction hypothesis.
+
+For $r^*$, the derivatives are constructed from derivatives of $r$
+using concatenation and Kleene star. For $\mathsf{LA}(r)$, both
+$D_a(\mathsf{LA}(r))$ and $D'_a(\mathsf{LA}(r))$ are constructed by
+applying $\mathsf{LA}$ to $D_a(r)$. Therefore, all resulting expressions
+belong to $\mathrm{REwPLA}$.
+
+Thus $D_a(r)\in\mathrm{REwPLA}$ for every symbol $a$. Since derivatives
+with respect to words are defined by
+\[
+D_\varepsilon(r)=r,
+\qquad
+D_{aw}(r)=D_w(D_a(r)),
+\]
+an induction on the length of $w$ yields
+$D_w(r)\in\mathrm{REwPLA}$.
+\end{proof}
+
+\begin{theorem}[Derivative equation for ordinary regular expressions]
+For every ordinary regular expression $r\in\mathrm{RE}$,
+\[
+r
+\equiv
+\lambda(r)
++
+\sum_{a\in\Sigma} aD_a(r).
+\]
+Equivalently,
+\[
+\mathcal{L}(r)
+=
+\mathcal{L}(\lambda(r))
+\cup
+\bigcup_{a\in\Sigma}
+a\,\mathcal{L}(D_a(r)).
+\]
+\end{theorem}
+
+\begin{proof}
+Let $w\in\mathcal{L}(r)$. If $w=\varepsilon$, then
+$\lambda(r)=\varepsilon$, and hence
+$w\in\mathcal{L}(\lambda(r))$.
+
+Otherwise, $w=ax$ for some $a\in\Sigma$ and $x\in\Sigma^*$. By the
+correctness of derivatives,
+\[
+x\in\mathcal{L}(D_a(r))
+\quad\Longleftrightarrow\quad
+ax\in\mathcal{L}(r).
+\]
+Hence $w=ax\in a\mathcal{L}(D_a(r))$.
+
+Conversely, $\varepsilon\in\mathcal{L}(\lambda(r))$ only when
+$\varepsilon\in\mathcal{L}(r)$. Moreover, if
+$x\in\mathcal{L}(D_a(r))$, derivative correctness gives
+$ax\in\mathcal{L}(r)$. Therefore both sides denote the same language.
+\end{proof}

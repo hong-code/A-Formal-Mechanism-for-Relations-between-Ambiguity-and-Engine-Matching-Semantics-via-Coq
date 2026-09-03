@@ -15,6 +15,20 @@
 \usepackage{amsmath}
 \usepackage{mathtools}
 \usepackage{booktabs}
+\usepackage{amssymb,amsthm}
+
+
+% Semantic brackets, avoiding dependency on stmaryrd.
+\newcommand{\sem}[1]{\mathopen{[\![}#1\mathclose{]\!]}}
+
+
+\theoremstyle{definition}
+\newtheorem{example}{Example}
+\newtheorem{definition}{Definition}
+\newtheorem{remark}{Remark}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
 
 \newcommand{\regex}{\mathsf{Regex}}
 \newcommand{\nfa}{\mathcal{A}}
@@ -24,10 +38,17 @@
 \newcommand{\amb}{\mathsf{amb}}
 \newcommand{\bt}{\mathsf{bt}}
 \newcommand{\lang}{\mathcal{L}}
+\newcommand{\lookahead}{\mathop{\text{?=}}\nolimits}
+
+
+% Lookaround notation
+\newcommand{\PosLA}[1]{\mathord{(?\!>}#1\mathord{)}}
+\newcommand{\NegLA}[1]{\mathord{(?\!\not>}#1\mathord{)}}
+\newcommand{\PosLB}[1]{\mathord{(?\!<}#1\mathord{)}}
+\newcommand{\NegLB}[1]{\mathord{(?\!\not<}#1\mathord{)}}
 
 \begin{document}
-
-\title[Ambiguity and JavaScript Backtracking Traces]{A Formal Mechanism for Relating Automata Ambiguity and JavaScript Backtracking Traces}
+\title{Automaton for Regex with Lookahead}
 
 % Author information is intentionally omitted for anonymous review.
 % For camera-ready, replace this block with real authors, affiliations, and emails.
@@ -46,13 +67,12 @@
 \maketitle
 
 \input{sections/introduction}
-\input{sections/motivating-example}
-\input{sections/background}
-\input{sections/position-automata}
-\input{sections/trace-run-correspondence}
+\input{sections/Preliminaries}
+\input{sections/Window-Semantics}
+\input{sections/lookahead-aware-position-automaton}
 \input{sections/ambiguity-consequences}
-\input{sections/mechanization}
-\input{sections/redos}
+% \input{sections/mechanization}
+% \input{sections/redos}
 \input{sections/related-work}
 \input{sections/conclusion}
 
